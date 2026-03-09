@@ -28,8 +28,6 @@ export interface AppPreferences {
   rememberPassphrase: boolean;
 }
 
-export type SaveLocation = 'default' | 'custom';
-
 export interface FileSaveResult {
   success: boolean;
   privateKeyPath: string;

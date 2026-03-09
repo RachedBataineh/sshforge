@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { KeyAlgorithm, GeneratedKey, SaveLocation } from '@/types';
+import type { KeyAlgorithm, GeneratedKey } from '@/types';
 
 interface KeyStore {
   // Form state
@@ -8,8 +8,6 @@ interface KeyStore {
   email: string;
   passphrase: string;
   confirmPassphrase: string;
-  saveLocation: SaveLocation;
-  customPath: string;
   defaultPath: string;
 
   // Generated key
@@ -32,8 +30,6 @@ interface KeyStore {
   setEmail: (email: string) => void;
   setPassphrase: (pass: string) => void;
   setConfirmPassphrase: (pass: string) => void;
-  setSaveLocation: (loc: SaveLocation) => void;
-  setCustomPath: (path: string) => void;
   setDefaultPath: (path: string) => void;
   setGeneratedKey: (key: GeneratedKey | null) => void;
   setPrivateKeyPath: (path: string) => void;
@@ -52,8 +48,6 @@ const initialState = {
   email: '',
   passphrase: '',
   confirmPassphrase: '',
-  saveLocation: 'default' as SaveLocation,
-  customPath: '',
   defaultPath: '',
   generatedKey: null,
   privateKeyPath: '',
@@ -81,8 +75,6 @@ export const useKeyStore = create<KeyStore>((set) => ({
   setEmail: (email) => set({ email }),
   setPassphrase: (passphrase) => set({ passphrase }),
   setConfirmPassphrase: (confirmPassphrase) => set({ confirmPassphrase }),
-  setSaveLocation: (saveLocation) => set({ saveLocation }),
-  setCustomPath: (customPath) => set({ customPath }),
   setDefaultPath: (defaultPath) => set({ defaultPath }),
   setGeneratedKey: (generatedKey) => set({ generatedKey }),
   setPrivateKeyPath: (privateKeyPath) => set({ privateKeyPath }),

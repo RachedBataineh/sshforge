@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { KeyRound, Mail, FileText, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,7 +6,6 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlgorithmSelector } from './AlgorithmSelector';
 import { PassphraseInput } from './PassphraseInput';
-import { SaveLocationPicker } from './SaveLocationPicker';
 import { KeyPreview } from './KeyPreview';
 import { SuccessDialog } from './SuccessDialog';
 import { useKeyStore } from '@/store/useKeyStore';
@@ -19,8 +18,6 @@ export function KeyGeneratorForm() {
     email,
     passphrase,
     confirmPassphrase,
-    saveLocation,
-    customPath,
     defaultPath,
     generatedKey,
     isGenerating,
@@ -34,9 +31,17 @@ export function KeyGeneratorForm() {
     setPublicKeyPath,
     setShowSuccess,
     setShowOverwriteDialog,
+    setDefaultPath,
   } = useKeyStore();
 
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    // Get default SSH path on mount
+    window.electronAPI.getDefaultPath().then((path) => {
+      setDefaultPath(path);
+    });
+  }, [setDefaultPath]);
 
   const validate = (): boolean => {
     const errors: Record<string, string> = {};
@@ -85,11 +90,9 @@ export function KeyGeneratorForm() {
 
       setGeneratedKey(result.key);
 
-      // Save the key
-      const savePath = saveLocation === 'custom' ? customPath : defaultPath;
-
-      if (!savePath) {
-        setError('Please select a save location');
+      // Save the key to default SSH directory
+      if (!defaultPath) {
+        setError('Unable to determine default SSH directory');
         return;
       }
 
@@ -97,7 +100,7 @@ export function KeyGeneratorForm() {
         privateKey: result.key.privateKey,
         publicKey: result.key.publicKey,
         keyName,
-        savePath,
+        savePath: defaultPath,
       });
 
       if (!saveResult.success) {
@@ -181,8 +184,6 @@ export function KeyGeneratorForm() {
       </div>
 
       <PassphraseInput />
-
-      <SaveLocationPicker />
 
       {generatedKey && <KeyPreview />}
 
