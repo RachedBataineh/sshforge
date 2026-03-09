@@ -74,14 +74,9 @@ export function SuccessDialog() {
 
         <div className="space-y-4 mt-4 overflow-y-auto flex-1 min-h-0">
           {/* Key Info */}
-          <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-            <div className="p-2 bg-primary/10 rounded-lg flex-shrink-0">
-              <Key className="h-4 w-4 text-primary" />
-            </div>
-            <div className="min-w-0 flex-1 overflow-hidden">
-              <p className="font-medium truncate">{generatedKey.keyName}</p>
-              <p className="text-sm text-muted-foreground">{algoInfo.name}</p>
-            </div>
+          <div className="p-3 bg-muted/50 rounded-lg">
+            <p className="font-medium truncate">{generatedKey.keyName}</p>
+            <p className="text-sm text-muted-foreground">{algoInfo.name}</p>
           </div>
 
           {/* Public Key */}
