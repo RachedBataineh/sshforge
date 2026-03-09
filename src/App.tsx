@@ -5,7 +5,6 @@ import { KeyGeneratorForm } from '@/components/KeyGeneratorForm';
 import { DeleteKeyDialog, RenameKeyDialog } from '@/components/KeyDialogs';
 import { SuccessDialog } from '@/components/SuccessDialog';
 import { useAppStore } from '@/store/useAppStore';
-import { useKeyStore } from '@/store/useKeyStore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, KeyRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -60,12 +59,18 @@ function App() {
 
   return (
     <TooltipProvider>
-      <div className="flex h-screen bg-background">
-        {/* Sidebar */}
-        <Sidebar />
+      <div className="flex flex-col h-screen bg-background">
+        {/* macOS Title Bar - Transparent drag region for traffic light buttons */}
+        <div className="h-12 flex-shrink-0 bg-background border-b" style={{ WebkitAppRegion: 'drag' } as React.CSSProperties} />
 
-        {/* Main Content */}
-        {currentView === 'create' ? <CreateKeyView /> : <KeyDetailView />}
+        {/* Main Content Area */}
+        <div className="flex flex-1 overflow-hidden">
+          {/* Sidebar */}
+          <Sidebar />
+
+          {/* Main Content */}
+          {currentView === 'create' ? <CreateKeyView /> : <KeyDetailView />}
+        </div>
 
         {/* Dialogs */}
         <SuccessDialog />
