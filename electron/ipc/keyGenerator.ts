@@ -533,8 +533,11 @@ function generateEd25519Key(_passphrase?: string, comment?: string): { privateKe
   // Export private key in PKCS#8 DER format to extract raw key
   const privateKeyPkcs8 = privateKey.export({ type: 'pkcs8', format: 'der' });
 
-  // Extract raw 32-byte private key from PKCS#8
-  const rawPrivateKey = privateKeyPkcs8.slice(-32);
+  // Extract raw 32-byte private key seed from PKCS#8
+  const rawPrivateKeySeed = privateKeyPkcs8.slice(-32);
+
+  // OpenSSH stores 64 bytes for Ed25519 private key: seed (32) + public key (32)
+  const rawPrivateKey = Buffer.concat([rawPrivateKeySeed, rawPublicKey]);
 
   // Format in OpenSSH native format
   const openSshPrivateKey = formatEd25519PrivateKeyOpenSSH(
