@@ -146,7 +146,7 @@ export function SuccessDialog() {
           <div className="flex gap-2 pt-2">
             <Button variant="outline" onClick={handleOpenFolder} className="flex-1 h-9">
               <FolderOpen className="h-4 w-4 mr-1.5" />
-              Open in Finder
+              Open SSH Folder
             </Button>
             <Button onClick={handleViewKey} className="flex-1 h-9">
               <Key className="h-4 w-4 mr-1.5" />
