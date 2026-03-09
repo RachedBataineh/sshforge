@@ -57,13 +57,13 @@ export function SuccessDialog() {
 
   return (
     <Dialog open={showSuccess} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-md w-[calc(100%-2rem)] max-h-[85vh] overflow-hidden flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-green-500/10 rounded-lg flex-shrink-0">
               <CheckCircle2 className="h-6 w-6 text-green-500" />
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 overflow-hidden">
               <DialogTitle>Key Generated Successfully!</DialogTitle>
               <DialogDescription>
                 Your SSH key pair has been created and saved.
@@ -72,32 +72,32 @@ export function SuccessDialog() {
           </div>
         </DialogHeader>
 
-        <div className="space-y-4 mt-4">
+        <div className="space-y-3 mt-4 overflow-y-auto flex-1 min-h-0">
           {/* Key Info */}
-          <div className="flex items-center gap-4 p-3 bg-muted/50 rounded-lg">
+          <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
             <div className="p-2 bg-primary/10 rounded-lg flex-shrink-0">
-              <Key className="h-5 w-5 text-primary" />
+              <Key className="h-4 w-4 text-primary" />
             </div>
-            <div className="min-w-0 flex-1">
+            <div className="min-w-0 flex-1 overflow-hidden">
               <p className="font-medium truncate">{generatedKey.keyName}</p>
               <p className="text-sm text-muted-foreground">{algoInfo.name}</p>
             </div>
           </div>
 
           {/* Public Key */}
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <label className="text-sm font-medium flex items-center gap-2">
               <FileText className="h-4 w-4 flex-shrink-0" />
               Public Key
             </label>
-            <div className="relative group">
-              <pre className="key-preview text-xs max-h-24 overflow-auto break-all">
+            <div className="relative">
+              <pre className="text-xs bg-muted/50 p-2.5 rounded-lg max-h-20 overflow-auto whitespace-pre-wrap break-all font-mono">
                 {generatedKey.publicKey}
               </pre>
               <Button
                 size="sm"
                 variant="secondary"
-                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute top-1.5 right-1.5 h-7"
                 onClick={handleCopy}
               >
                 {copied ? (
@@ -116,26 +116,26 @@ export function SuccessDialog() {
           </div>
 
           {/* Fingerprint */}
-          <div className="flex items-center gap-2 text-sm flex-wrap">
-            <span className="text-muted-foreground flex-shrink-0">Fingerprint:</span>
-            <code className="font-mono text-xs bg-muted px-2 py-1 rounded break-all">
+          <div className="text-sm">
+            <span className="text-muted-foreground">Fingerprint: </span>
+            <code className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded break-all">
               {generatedKey.fingerprint}
             </code>
           </div>
 
           {/* File Locations */}
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <label className="text-sm font-medium">File Locations</label>
-            <div className="space-y-1.5 text-sm">
-              <div className="flex items-start gap-2">
-                <span className="text-muted-foreground w-14 flex-shrink-0 pt-0.5">Private:</span>
-                <code className="font-mono text-xs bg-muted px-2 py-1 rounded flex-1 break-all">
+            <div className="space-y-1 text-xs">
+              <div className="flex gap-2">
+                <span className="text-muted-foreground w-12 flex-shrink-0">Private:</span>
+                <code className="font-mono bg-muted px-1.5 py-0.5 rounded break-all flex-1">
                   {privateKeyPath}
                 </code>
               </div>
-              <div className="flex items-start gap-2">
-                <span className="text-muted-foreground w-14 flex-shrink-0 pt-0.5">Public:</span>
-                <code className="font-mono text-xs bg-muted px-2 py-1 rounded flex-1 break-all">
+              <div className="flex gap-2">
+                <span className="text-muted-foreground w-12 flex-shrink-0">Public:</span>
+                <code className="font-mono bg-muted px-1.5 py-0.5 rounded break-all flex-1">
                   {publicKeyPath}
                 </code>
               </div>
@@ -144,12 +144,12 @@ export function SuccessDialog() {
 
           {/* Actions */}
           <div className="flex gap-2 pt-2">
-            <Button variant="outline" onClick={handleOpenFolder} className="flex-1">
-              <FolderOpen className="h-4 w-4 mr-2" />
+            <Button variant="outline" onClick={handleOpenFolder} className="flex-1 h-9">
+              <FolderOpen className="h-4 w-4 mr-1.5" />
               Open in Finder
             </Button>
-            <Button onClick={handleViewKey} className="flex-1">
-              <Key className="h-4 w-4 mr-2" />
+            <Button onClick={handleViewKey} className="flex-1 h-9">
+              <Key className="h-4 w-4 mr-1.5" />
               View Key
             </Button>
           </div>
