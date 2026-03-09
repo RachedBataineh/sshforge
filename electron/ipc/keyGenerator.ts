@@ -45,13 +45,77 @@ function formatEd25519PublicKey(publicKeyBuffer: Buffer): Buffer {
 }
 
 /**
+ * Formats Ed25519 private key in OpenSSH native format (unencrypted)
+ */
+function formatEd25519PrivateKeyOpenSSH(
+  privateKeyBuffer: Buffer,
+  publicKeyBuffer: Buffer,
+  comment: string
+): string {
+  const AUTH_MAGIC = Buffer.from('openssh-key-v1\0');
+  const cipherName = 'none';
+  const kdfName = 'none';
+  const kdfOptions = Buffer.alloc(0);
+  const numKeys = 1;
+
+  // Public key blob
+  const publicKeyBlob = formatEd25519PublicKey(publicKeyBuffer);
+
+  // Check ints (random, must match)
+  const checkInt = crypto.randomBytes(4);
+
+  // Key type
+  const keyType = 'ssh-ed25519';
+
+  // Private section
+  let privateSection = Buffer.concat([
+    checkInt,
+    checkInt,
+    writeString(keyType),
+    writeString(publicKeyBuffer),
+    writeString(privateKeyBuffer),
+    writeString(comment),
+  ]);
+
+  // Padding (block cipher size 8 for AES-256-CTR)
+  const blockSize = 8;
+  const paddingLength = blockSize - (privateSection.length % blockSize);
+  const padding = Buffer.alloc(paddingLength);
+  for (let i = 1; i <= paddingLength; i++) {
+    padding[i - 1] = i;
+  }
+  privateSection = Buffer.concat([privateSection, padding]);
+
+  // Build full key structure
+  const fullKey = Buffer.concat([
+    AUTH_MAGIC,
+    writeString(cipherName),
+    writeString(kdfName),
+    writeString(kdfOptions),
+    writeUint32BE(numKeys),
+    writeString(publicKeyBlob),
+    writeString(privateSection),
+  ]);
+
+  // Format as PEM
+  const base64Key = fullKey.toString('base64');
+  const lines: string[] = [];
+  for (let i = 0; i < base64Key.length; i += 70) {
+    lines.push(base64Key.slice(i, i + 70));
+  }
+
+  return [
+    '-----BEGIN OPENSSH PRIVATE KEY-----',
+    ...lines,
+    '-----END OPENSSH PRIVATE KEY-----',
+    '',
+  ].join('\n');
+}
+
+/**
  * Formats RSA public key in OpenSSH format from SPKI DER
  */
 function formatRSAPublicKey(spkidDer: Buffer): Buffer {
-  // Parse SPKI DER to extract n and e
-  // SPKI format: SEQUENCE { SEQUENCE { OID, NULL }, BIT STRING }
-  // The BIT STRING contains RSAPublicKey: SEQUENCE { n INTEGER, e INTEGER }
-
   // Find the BIT STRING (tag 0x03)
   let bitStringStart = -1;
   for (let i = 0; i < spkidDer.length - 1; i++) {
@@ -84,7 +148,6 @@ function formatRSAPublicKey(spkidDer: Buffer): Buffer {
   offset++;
 
   // Now we're at the RSAPublicKey SEQUENCE
-  // Skip SEQUENCE tag
   if (spkidDer[offset] !== 0x30) {
     throw new Error('Invalid RSA public key format');
   }
@@ -154,10 +217,6 @@ function formatRSAPublicKey(spkidDer: Buffer): Buffer {
  * Formats ECDSA public key in OpenSSH format from SPKI DER
  */
 function formatECDSAPublicKey(spkidDer: Buffer): Buffer {
-  // For ECDSA P-521, the SPKI contains:
-  // SEQUENCE { SEQUENCE { OID_ecPublicKey, OID_secp521r1 }, BIT STRING }
-  // The BIT STRING contains the uncompressed point (0x04 || x || y)
-
   // Find the BIT STRING (tag 0x03)
   let bitStringStart = -1;
   for (let i = 0; i < spkidDer.length - 1; i++) {
@@ -184,7 +243,7 @@ function formatECDSAPublicKey(spkidDer: Buffer): Buffer {
   // Skip unused bits byte
   offset++;
 
-  // Extract the point (should be 133 bytes for P-521: 1 + 2*66)
+  // Extract the point
   const point = spkidDer.slice(offset);
 
   // Build OpenSSH format
@@ -237,33 +296,29 @@ function formatPublicKeyOpenSSH(
 /**
  * Generates an Ed25519 key pair
  */
-function generateEd25519Key(passphrase?: string): { privateKey: string; publicKeyData: Buffer } {
+function generateEd25519Key(_passphrase?: string, comment?: string): { privateKey: string; publicKeyData: Buffer } {
   const { publicKey, privateKey } = crypto.generateKeyPairSync('ed25519');
 
   // Export public key in SPKI DER format
   const publicKeySpki = publicKey.export({ type: 'spki', format: 'der' });
 
   // Extract raw 32-byte public key from SPKI
-  // Ed25519 SPKI: 0x30 0x2a 0x30 0x05 0x06 0x03 0x2b 0x65 0x70 0x05 0x00 0x03 0x21 0x00 <32 bytes>
   const rawPublicKey = publicKeySpki.slice(-32);
 
-  // Export private key
-  let privateKeyPem: string;
-  if (passphrase) {
-    privateKeyPem = privateKey.export({
-      type: 'pkcs8',
-      format: 'pem',
-      cipher: 'aes-256-cbc',
-      passphrase: passphrase,
-    }) as string;
-  } else {
-    privateKeyPem = privateKey.export({
-      type: 'pkcs8',
-      format: 'pem',
-    }) as string;
-  }
+  // Export private key in PKCS#8 DER format to extract raw key
+  const privateKeyPkcs8 = privateKey.export({ type: 'pkcs8', format: 'der' });
 
-  return { privateKey: privateKeyPem, publicKeyData: rawPublicKey };
+  // Extract raw 32-byte private key from PKCS#8
+  const rawPrivateKey = privateKeyPkcs8.slice(-32);
+
+  // Format in OpenSSH native format
+  const openSshPrivateKey = formatEd25519PrivateKeyOpenSSH(
+    rawPrivateKey,
+    rawPublicKey,
+    comment || ''
+  );
+
+  return { privateKey: openSshPrivateKey, publicKeyData: rawPublicKey };
 }
 
 /**
@@ -343,11 +398,14 @@ function calculateFingerprint(sshKeyBuffer: Buffer): string {
 async function generateKeyPair(options: KeyGenerationOptions): Promise<GeneratedKey> {
   const { algorithm, passphrase, email, keyName } = options;
 
+  // Generate comment
+  const comment = email || `${keyName}@sshforge`;
+
   let keyPair: { privateKey: string; publicKeyData: Buffer };
 
   switch (algorithm) {
     case 'ed25519':
-      keyPair = generateEd25519Key(passphrase);
+      keyPair = generateEd25519Key(passphrase, comment);
       break;
     case 'rsa-4096':
       keyPair = generateRSAKey(passphrase);
@@ -358,9 +416,6 @@ async function generateKeyPair(options: KeyGenerationOptions): Promise<Generated
     default:
       throw new Error(`Unsupported algorithm: ${algorithm}`);
   }
-
-  // Generate comment
-  const comment = email || `${keyName}@sshforge`;
 
   // Format public key in OpenSSH format
   const publicKeyOpenSSH = formatPublicKeyOpenSSH(keyPair.publicKeyData, algorithm, comment);
