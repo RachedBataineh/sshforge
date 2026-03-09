@@ -1,4 +1,4 @@
-import { ShieldCheck, Zap, Lock } from 'lucide-react';
+import { ShieldCheck, Zap, Lock, Key } from 'lucide-react';
 import { useKeyStore } from '@/store/useKeyStore';
 import { ALGORITHM_INFO } from '@/lib/constants';
 import { cn } from '@/lib/utils';
@@ -7,7 +7,9 @@ import type { KeyAlgorithm } from '@/types';
 const algorithmIcons: Record<KeyAlgorithm, React.ReactNode> = {
   'ed25519': <Zap className="h-5 w-5" />,
   'rsa-4096': <ShieldCheck className="h-5 w-5" />,
-  'ecdsa': <Lock className="h-5 w-5" />,
+  'ecdsa-p256': <Lock className="h-5 w-5" />,
+  'ecdsa-p384': <Lock className="h-5 w-5" />,
+  'ecdsa-p521': <Key className="h-5 w-5" />,
 };
 
 export function AlgorithmSelector() {

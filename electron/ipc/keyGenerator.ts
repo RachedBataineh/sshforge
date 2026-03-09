@@ -136,6 +136,7 @@ function formatRSAPublicKey(n: Buffer, e: Buffer): Buffer {
 
 /**
  * Formats RSA private key in OpenSSH native format
+ * Order: n, e, d, iqmp, p, q (as per OpenSSH sshkey.c)
  */
 function formatRSAPrivateKeyOpenSSH(
   n: Buffer, e: Buffer, d: Buffer,
@@ -147,7 +148,7 @@ function formatRSAPrivateKeyOpenSSH(
   // Public key blob
   const publicKeyBlob = formatRSAPublicKey(n, e);
 
-  // Private section data for RSA
+  // Private section data for RSA (order matches OpenSSH)
   const privateSectionData = Buffer.concat([
     writeString(keyType),
     writeMpint(n),
@@ -162,15 +163,26 @@ function formatRSAPrivateKeyOpenSSH(
 }
 
 /**
+ * ECDSA curve info
+ */
+const ECDSA_CURVES: Record<string, { keyType: string; curveName: string; nodeCurve: string }> = {
+  'ecdsa-p256': { keyType: 'ecdsa-sha2-nistp256', curveName: 'nistp256', nodeCurve: 'P-256' },
+  'ecdsa-p384': { keyType: 'ecdsa-sha2-nistp384', curveName: 'nistp384', nodeCurve: 'P-384' },
+  'ecdsa-p521': { keyType: 'ecdsa-sha2-nistp521', curveName: 'nistp521', nodeCurve: 'P-521' },
+};
+
+/**
  * Formats ECDSA public key in OpenSSH format
  */
-function formatECDSAPublicKey(point: Buffer): Buffer {
-  const keyType = 'ecdsa-sha2-nistp521';
-  const curve = 'nistp521';
+function formatECDSAPublicKey(point: Buffer, algorithm: string): Buffer {
+  const curveInfo = ECDSA_CURVES[algorithm];
+  if (!curveInfo) {
+    throw new Error(`Unsupported ECDSA algorithm: ${algorithm}`);
+  }
 
   return Buffer.concat([
-    writeString(keyType),
-    writeString(curve),
+    writeString(curveInfo.keyType),
+    writeString(curveInfo.curveName),
     writeString(point),
   ]);
 }
@@ -181,18 +193,21 @@ function formatECDSAPublicKey(point: Buffer): Buffer {
 function formatECDSAPrivateKeyOpenSSH(
   point: Buffer,
   scalar: Buffer,
-  comment: string
+  comment: string,
+  algorithm: string
 ): string {
-  const keyType = 'ecdsa-sha2-nistp521';
-  const curve = 'nistp521';
+  const curveInfo = ECDSA_CURVES[algorithm];
+  if (!curveInfo) {
+    throw new Error(`Unsupported ECDSA algorithm: ${algorithm}`);
+  }
 
   // Public key blob
-  const publicKeyBlob = formatECDSAPublicKey(point);
+  const publicKeyBlob = formatECDSAPublicKey(point, algorithm);
 
   // Private section data for ECDSA
   const privateSectionData = Buffer.concat([
-    writeString(keyType),
-    writeString(curve),
+    writeString(curveInfo.keyType),
+    writeString(curveInfo.curveName),
     writeString(point),
     writeMpint(scalar),
   ]);
@@ -245,18 +260,6 @@ function parseRSAPrivateKeyPKCS1(der: Buffer): {
   p: Buffer; q: Buffer;
   dmp1: Buffer; dmq1: Buffer; iqmp: Buffer;
 } {
-  // RSAPrivateKey ::= SEQUENCE {
-  //   version           Version,
-  //   modulus           INTEGER,  -- n
-  //   publicExponent    INTEGER,  -- e
-  //   privateExponent   INTEGER,  -- d
-  //   prime1            INTEGER,  -- p
-  //   prime2            INTEGER,  -- q
-  //   exponent1         INTEGER,  -- d mod (p-1) = dmp1
-  //   exponent2         INTEGER,  -- d mod (q-1) = dmq1
-  //   coefficient       INTEGER   -- (inverse of q) mod p = iqmp
-  // }
-
   let offset = 0;
 
   // SEQUENCE tag
@@ -320,16 +323,6 @@ function parseRSAPrivateKeyPKCS1(der: Buffer): {
  * Extract ECDSA key components from PKCS#8 DER
  */
 function parseECDSAPrivateKeyPKCS8(der: Buffer): { scalar: Buffer; point: Buffer } {
-  // ECPrivateKey ::= SEQUENCE {
-  //   version        INTEGER,
-  //   privateKey     OCTET STRING,
-  //   parameters [0] ECParameters OPTIONAL,
-  //   publicKey  [1] BIT STRING OPTIONAL
-  // }
-
-  // First, find the ECPrivateKey inside the PKCS#8 wrapper
-  // PKCS#8: SEQUENCE { version, privateKeyAlgorithm, privateKey }
-
   let offset = 0;
 
   // Outer SEQUENCE
@@ -489,26 +482,28 @@ function formatPublicKeyOpenSSH(
   comment: string
 ): string {
   let sshKeyBuffer: Buffer;
+  let keyType: string;
 
   switch (algorithm) {
     case 'ed25519':
       sshKeyBuffer = formatEd25519PublicKey(keyData);
+      keyType = 'ssh-ed25519';
       break;
     case 'rsa-4096': {
       const { n, e } = parseRSAPublicKeySPKI(keyData);
       sshKeyBuffer = formatRSAPublicKey(n, e);
+      keyType = 'ssh-rsa';
       break;
     }
-    case 'ecdsa':
-      sshKeyBuffer = formatECDSAPublicKey(keyData);
+    case 'ecdsa-p256':
+    case 'ecdsa-p384':
+    case 'ecdsa-p521':
+      sshKeyBuffer = formatECDSAPublicKey(keyData, algorithm);
+      keyType = ECDSA_CURVES[algorithm].keyType;
       break;
     default:
       throw new Error(`Unsupported algorithm: ${algorithm}`);
   }
-
-  const keyType = algorithm === 'ed25519' ? 'ssh-ed25519' :
-                  algorithm === 'rsa-4096' ? 'ssh-rsa' :
-                  'ecdsa-sha2-nistp521';
 
   const base64Key = sshKeyBuffer.toString('base64');
 
@@ -582,11 +577,17 @@ function generateRSAKey(_passphrase?: string, comment?: string): { privateKey: s
 }
 
 /**
- * Generates an ECDSA P-521 key pair
+ * Generates an ECDSA key pair for a specific curve
  */
-function generateECDSAKey(_passphrase?: string, comment?: string): { privateKey: string; publicKeyData: Buffer } {
+function generateECDSAKey(
+  algorithm: 'ecdsa-p256' | 'ecdsa-p384' | 'ecdsa-p521',
+  _passphrase?: string,
+  comment?: string
+): { privateKey: string; publicKeyData: Buffer } {
+  const curveInfo = ECDSA_CURVES[algorithm];
+
   const { publicKey, privateKey } = crypto.generateKeyPairSync('ec', {
-    namedCurve: 'P-521',
+    namedCurve: curveInfo.nodeCurve,
   });
 
   // Export public key in SPKI DER format
@@ -605,7 +606,8 @@ function generateECDSAKey(_passphrase?: string, comment?: string): { privateKey:
   const openSshPrivateKey = formatECDSAPrivateKeyOpenSSH(
     point,
     scalar,
-    comment || ''
+    comment || '',
+    algorithm
   );
 
   return { privateKey: openSshPrivateKey, publicKeyData: point };
@@ -639,8 +641,10 @@ async function generateKeyPair(options: KeyGenerationOptions): Promise<Generated
     case 'rsa-4096':
       keyPair = generateRSAKey(passphrase, comment);
       break;
-    case 'ecdsa':
-      keyPair = generateECDSAKey(passphrase, comment);
+    case 'ecdsa-p256':
+    case 'ecdsa-p384':
+    case 'ecdsa-p521':
+      keyPair = generateECDSAKey(algorithm, passphrase, comment);
       break;
     default:
       throw new Error(`Unsupported algorithm: ${algorithm}`);

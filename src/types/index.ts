@@ -1,4 +1,4 @@
-export type KeyAlgorithm = 'ed25519' | 'rsa-4096' | 'ecdsa';
+export type KeyAlgorithm = 'ed25519' | 'rsa-4096' | 'ecdsa-p256' | 'ecdsa-p384' | 'ecdsa-p521';
 
 export interface KeyGenerationOptions {
   algorithm: KeyAlgorithm;

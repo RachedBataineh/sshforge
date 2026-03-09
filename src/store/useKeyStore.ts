@@ -66,7 +66,9 @@ export const useKeyStore = create<KeyStore>((set) => ({
     set({ algorithm });
     // Update default key name based on algorithm
     const defaultName = algorithm === 'rsa-4096' ? 'id_rsa' :
-                        algorithm === 'ecdsa' ? 'id_ecdsa' :
+                        algorithm === 'ecdsa-p256' ? 'id_ecdsa_p256' :
+                        algorithm === 'ecdsa-p384' ? 'id_ecdsa_p384' :
+                        algorithm === 'ecdsa-p521' ? 'id_ecdsa_p521' :
                         'id_ed25519';
     set({ keyName: defaultName });
   },

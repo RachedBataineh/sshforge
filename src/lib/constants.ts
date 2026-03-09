@@ -23,9 +23,23 @@ export const ALGORITHM_INFO: Record<KeyAlgorithm, {
     keySize: '4096 bits',
     speed: 'slow',
   },
-  'ecdsa': {
+  'ecdsa-p256': {
+    name: 'ECDSA P-256',
+    description: 'NIST P-256 curve. Good compatibility with most systems.',
+    recommended: false,
+    keySize: '256 bits',
+    speed: 'fast',
+  },
+  'ecdsa-p384': {
+    name: 'ECDSA P-384',
+    description: 'NIST P-384 curve. Higher security than P-256.',
+    recommended: false,
+    keySize: '384 bits',
+    speed: 'medium',
+  },
+  'ecdsa-p521': {
     name: 'ECDSA P-521',
-    description: 'Elliptic curve alternative. Good balance of security and compatibility.',
+    description: 'NIST P-521 curve. Highest security ECDSA option.',
     recommended: false,
     keySize: '521 bits',
     speed: 'medium',
