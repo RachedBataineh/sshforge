@@ -108,10 +108,11 @@ function listSSHKeys(dirPath: string): SSHKeyInfo[] {
       const fullPath = path.join(dirPath, file);
       const isFile = fs.statSync(fullPath).isFile();
       const isPublicKey = file.endsWith('.pub');
+      const isHiddenFile = file.startsWith('.');
       const isKnownHosts = file === 'known_hosts' || file === 'known_hosts.old';
       const isConfig = file === 'config';
       const isAuthorizedKeys = file === 'authorized_keys' || file === 'authorized_keys2';
-      return isFile && !isPublicKey && !isKnownHosts && !isConfig && !isAuthorizedKeys;
+      return isFile && !isPublicKey && !isHiddenFile && !isKnownHosts && !isConfig && !isAuthorizedKeys;
     });
 
     for (const keyFile of privateKeys) {
