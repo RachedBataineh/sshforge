@@ -29,6 +29,210 @@ function fileExists(filePath: string): boolean {
 }
 
 /**
+ * Gets file stats including creation and modification dates
+ */
+function getFileStats(filePath: string): { created: Date; modified: Date } | null {
+  try {
+    const stats = fs.statSync(filePath);
+    return {
+      created: stats.birthtime,
+      modified: stats.mtime,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * SSH Key info interface
+ */
+interface SSHKeyInfo {
+  name: string;
+  privateKeyPath: string;
+  publicKeyPath: string;
+  hasPublicKey: boolean;
+  hasPrivateKey: boolean;
+  algorithm: string;
+  created: Date | null;
+  modified: Date | null;
+  fingerprint?: string;
+  comment?: string;
+}
+
+/**
+ * Detects the algorithm type from a public key
+ */
+function detectAlgorithm(publicKeyContent: string): string {
+  if (publicKeyContent.startsWith('ssh-ed25519')) return 'ed25519';
+  if (publicKeyContent.startsWith('ssh-rsa')) return 'rsa';
+  if (publicKeyContent.startsWith('ecdsa-sha2-nistp256')) return 'ecdsa-p256';
+  if (publicKeyContent.startsWith('ecdsa-sha2-nistp384')) return 'ecdsa-p384';
+  if (publicKeyContent.startsWith('ecdsa-sha2-nistp521')) return 'ecdsa-p521';
+  if (publicKeyContent.startsWith('sk-ssh-ed25519')) return 'sk-ed25519';
+  if (publicKeyContent.startsWith('sk-ecdsa-sha2-nistp256')) return 'sk-ecdsa';
+  return 'unknown';
+}
+
+/**
+ * Extracts fingerprint and comment from public key
+ */
+function parsePublicKey(publicKeyContent: string): { fingerprint?: string; comment?: string } {
+  const parts = publicKeyContent.trim().split(' ');
+  const result: { fingerprint?: string; comment?: string } = {};
+
+  // Extract comment (everything after the key)
+  if (parts.length >= 3) {
+    result.comment = parts.slice(2).join(' ');
+  }
+
+  // We can't calculate fingerprint without the actual key bytes
+  // The fingerprint shown by ssh-keygen is calculated differently
+  return result;
+}
+
+/**
+ * Lists all SSH keys in a directory
+ */
+function listSSHKeys(dirPath: string): SSHKeyInfo[] {
+  const keys: SSHKeyInfo[] = [];
+
+  if (!fs.existsSync(dirPath)) {
+    return keys;
+  }
+
+  try {
+    const files = fs.readdirSync(dirPath);
+
+    // Find all private key files (not ending in .pub)
+    const privateKeys = files.filter(file => {
+      const fullPath = path.join(dirPath, file);
+      const isFile = fs.statSync(fullPath).isFile();
+      const isPublicKey = file.endsWith('.pub');
+      const isKnownHosts = file === 'known_hosts' || file === 'known_hosts.old';
+      const isConfig = file === 'config';
+      const isAuthorizedKeys = file === 'authorized_keys' || file === 'authorized_keys2';
+      return isFile && !isPublicKey && !isKnownHosts && !isConfig && !isAuthorizedKeys;
+    });
+
+    for (const keyFile of privateKeys) {
+      const privateKeyPath = path.join(dirPath, keyFile);
+      const publicKeyPath = path.join(dirPath, `${keyFile}.pub`);
+      const hasPublicKey = fs.existsSync(publicKeyPath);
+      const stats = getFileStats(privateKeyPath);
+
+      let algorithm = 'unknown';
+      let comment: string | undefined;
+      let fingerprint: string | undefined;
+
+      if (hasPublicKey) {
+        try {
+          const publicKeyContent = fs.readFileSync(publicKeyPath, 'utf8');
+          algorithm = detectAlgorithm(publicKeyContent);
+          const parsed = parsePublicKey(publicKeyContent);
+          comment = parsed.comment;
+          fingerprint = parsed.fingerprint;
+        } catch {
+          // Ignore read errors
+        }
+      }
+
+      keys.push({
+        name: keyFile,
+        privateKeyPath,
+        publicKeyPath,
+        hasPublicKey,
+        hasPrivateKey: true,
+        algorithm,
+        created: stats?.created || null,
+        modified: stats?.modified || null,
+        fingerprint,
+        comment,
+      });
+    }
+
+    // Sort by modification date (newest first)
+    keys.sort((a, b) => {
+      if (!a.modified && !b.modified) return 0;
+      if (!a.modified) return 1;
+      if (!b.modified) return -1;
+      return b.modified.getTime() - a.modified.getTime();
+    });
+  } catch (error) {
+    console.error('Error listing SSH keys:', error);
+  }
+
+  return keys;
+}
+
+/**
+ * Reads a key file content
+ */
+function readKeyFile(filePath: string): string | null {
+  try {
+    return fs.readFileSync(filePath, 'utf8');
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Deletes a key pair
+ */
+function deleteKeyPair(privateKeyPath: string): { success: boolean; error?: string } {
+  try {
+    const publicKeyPath = `${privateKeyPath}.pub`;
+
+    if (fs.existsSync(privateKeyPath)) {
+      fs.unlinkSync(privateKeyPath);
+    }
+
+    if (fs.existsSync(publicKeyPath)) {
+      fs.unlinkSync(publicKeyPath);
+    }
+
+    return { success: true };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return { success: false, error: message };
+  }
+}
+
+/**
+ * Renames a key pair
+ */
+function renameKeyPair(oldPrivateKeyPath: string, newName: string): { success: boolean; newPrivateKeyPath?: string; newPublicKeyPath?: string; error?: string } {
+  try {
+    const dir = path.dirname(oldPrivateKeyPath);
+    const oldPublicKeyPath = `${oldPrivateKeyPath}.pub`;
+
+    const newPrivateKeyPath = path.join(dir, newName);
+    const newPublicKeyPath = path.join(dir, `${newName}.pub`);
+
+    // Check if new name already exists
+    if (fs.existsSync(newPrivateKeyPath) || fs.existsSync(newPublicKeyPath)) {
+      return { success: false, error: 'A key with this name already exists' };
+    }
+
+    if (fs.existsSync(oldPrivateKeyPath)) {
+      fs.renameSync(oldPrivateKeyPath, newPrivateKeyPath);
+    }
+
+    if (fs.existsSync(oldPublicKeyPath)) {
+      fs.renameSync(oldPublicKeyPath, newPublicKeyPath);
+    }
+
+    return {
+      success: true,
+      newPrivateKeyPath,
+      newPublicKeyPath,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return { success: false, error: message };
+  }
+}
+
+/**
  * Saves key pair to disk
  */
 async function saveKeyPair(options: SaveOptions): Promise<FileSaveResult> {
@@ -137,5 +341,25 @@ export function registerFileManagerHandlers(): void {
   // Get platform
   ipcMain.handle('app:get-platform', () => {
     return process.platform;
+  });
+
+  // List SSH keys
+  ipcMain.handle('file:list-keys', (_event, dirPath?: string) => {
+    return listSSHKeys(dirPath || getDefaultSSHPath());
+  });
+
+  // Read key file
+  ipcMain.handle('file:read-key', (_event, filePath: string) => {
+    return readKeyFile(filePath);
+  });
+
+  // Delete key pair
+  ipcMain.handle('file:delete-key', (_event, privateKeyPath: string) => {
+    return deleteKeyPair(privateKeyPath);
+  });
+
+  // Rename key pair
+  ipcMain.handle('file:rename-key', (_event, oldPrivateKeyPath: string, newName: string) => {
+    return renameKeyPair(oldPrivateKeyPath, newName);
   });
 }

@@ -9,10 +9,12 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useKeyStore } from '@/store/useKeyStore';
+import { useAppStore } from '@/store/useAppStore';
 import { ALGORITHM_INFO } from '@/lib/constants';
 
 export function SuccessDialog() {
   const { showSuccess, setShowSuccess, generatedKey, privateKeyPath, publicKeyPath, reset } = useKeyStore();
+  const { loadKeys, selectKey, setCurrentView } = useAppStore();
   const [copied, setCopied] = useState(false);
 
   if (!generatedKey) return null;
@@ -27,9 +29,28 @@ export function SuccessDialog() {
     await window.electronAPI.openInFileManager(privateKeyPath);
   };
 
-  const handleClose = () => {
+  const handleClose = async () => {
     setShowSuccess(false);
     reset();
+    // Refresh the key list and navigate to list view
+    await loadKeys();
+    setCurrentView('list');
+  };
+
+  const handleViewKey = async () => {
+    setShowSuccess(false);
+    reset();
+    // Refresh the key list
+    await loadKeys();
+    // Find the newly created key and select it
+    setTimeout(async () => {
+      const allKeys = await window.electronAPI.listKeys();
+      const newKey = allKeys.find(k => k.privateKeyPath === privateKeyPath);
+      if (newKey) {
+        await selectKey(newKey);
+      }
+    }, 100);
+    setCurrentView('list');
   };
 
   const algoInfo = ALGORITHM_INFO[generatedKey.algorithm];
@@ -127,8 +148,9 @@ export function SuccessDialog() {
               <FolderOpen className="h-4 w-4 mr-2" />
               Open in Finder
             </Button>
-            <Button onClick={handleClose} className="flex-1">
-              Done
+            <Button onClick={handleViewKey} className="flex-1">
+              <Key className="h-4 w-4 mr-2" />
+              View Key
             </Button>
           </div>
         </div>

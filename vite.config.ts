@@ -3,6 +3,18 @@ import react from '@vitejs/plugin-react'
 import electron from 'vite-plugin-electron'
 import renderer from 'vite-plugin-electron-renderer'
 import path from 'path'
+import fs from 'fs'
+
+// Custom plugin to copy preload.cjs directly
+const copyPreloadPlugin = () => ({
+  name: 'copy-preload',
+  writeBundle() {
+    const src = path.resolve(__dirname, 'electron/preload.cjs')
+    const dest = path.resolve(__dirname, 'dist-electron/preload.cjs')
+    fs.copyFileSync(src, dest)
+    console.log('Copied preload.cjs to dist-electron/')
+  },
+})
 
 export default defineConfig({
   plugins: [
@@ -21,26 +33,7 @@ export default defineConfig({
               external: ['electron'],
             },
           },
-        },
-      },
-      {
-        entry: 'electron/preload.cjs',
-        onstart(options) {
-          options.reload()
-        },
-        vite: {
-          build: {
-            outDir: 'dist-electron',
-            sourcemap: true,
-            lib: {
-              entry: path.resolve(__dirname, 'electron/preload.cjs'),
-              formats: ['cjs'],
-              fileName: () => 'preload.cjs',
-            },
-            rollupOptions: {
-              external: ['electron'],
-            },
-          },
+          plugins: [copyPreloadPlugin()],
         },
       },
     ]),

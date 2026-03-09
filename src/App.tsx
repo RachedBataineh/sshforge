@@ -1,57 +1,76 @@
-import { Key, Shield, Terminal } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { Sidebar } from '@/components/Sidebar';
+import { KeyDetailView } from '@/components/KeyDetailView';
 import { KeyGeneratorForm } from '@/components/KeyGeneratorForm';
-import { APP_NAME } from '@/lib/constants';
+import { DeleteKeyDialog, RenameKeyDialog } from '@/components/KeyDialogs';
+import { SuccessDialog } from '@/components/SuccessDialog';
+import { useAppStore } from '@/store/useAppStore';
+import { useKeyStore } from '@/store/useKeyStore';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ArrowLeft, KeyRound } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+
+function CreateKeyView() {
+  const { setCurrentView } = useAppStore();
+
+  return (
+    <div className="flex-1 overflow-auto">
+      <div className="max-w-2xl mx-auto p-6">
+        {/* Back Button */}
+        <Button
+          variant="ghost"
+          className="mb-4 -ml-2"
+          onClick={() => setCurrentView('list')}
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Keys
+        </Button>
+
+        {/* Main Card */}
+        <Card className="glass">
+          <CardHeader className="space-y-1 pb-4">
+            <CardTitle className="text-xl flex items-center gap-2">
+              <KeyRound className="h-5 w-5" />
+              Generate New Key
+            </CardTitle>
+            <CardDescription>
+              Create a new SSH key pair for secure authentication
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <KeyGeneratorForm />
+          </CardContent>
+        </Card>
+
+        {/* Footer */}
+        <div className="mt-8 text-center text-sm text-muted-foreground">
+          <p>
+            Keys are generated locally on your machine.
+            <br />
+            Your private key never leaves your device.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function App() {
+  const { currentView } = useAppStore();
+
   return (
     <TooltipProvider>
-      <div className="min-h-screen gradient-bg">
-        <div className="container mx-auto px-4 py-8 max-w-2xl">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center gap-3 mb-4">
-              <div className="relative">
-                <div className="p-3 bg-primary/10 rounded-xl">
-                  <Key className="h-8 w-8 text-primary" />
-                </div>
-                <div className="absolute -bottom-1 -right-1 p-1 bg-green-500/20 rounded-full">
-                  <Shield className="h-4 w-4 text-green-500" />
-                </div>
-              </div>
-            </div>
-            <h1 className="text-3xl font-bold tracking-tight mb-2">
-              {APP_NAME}
-            </h1>
-            <p className="text-muted-foreground flex items-center justify-center gap-2">
-              <Terminal className="h-4 w-4" />
-              Generate secure SSH keys with a beautiful interface
-            </p>
-          </div>
+      <div className="flex h-screen bg-background">
+        {/* Sidebar */}
+        <Sidebar />
 
-          {/* Main Card */}
-          <Card className="glass glow">
-            <CardHeader className="space-y-1 pb-4">
-              <CardTitle className="text-xl">Generate New Key</CardTitle>
-              <CardDescription>
-                Create a new SSH key pair for secure authentication
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <KeyGeneratorForm />
-            </CardContent>
-          </Card>
+        {/* Main Content */}
+        {currentView === 'create' ? <CreateKeyView /> : <KeyDetailView />}
 
-          {/* Footer */}
-          <div className="mt-8 text-center text-sm text-muted-foreground">
-            <p>
-              Keys are generated locally on your machine.
-              <br />
-              Your private key never leaves your device.
-            </p>
-          </div>
-        </div>
+        {/* Dialogs */}
+        <SuccessDialog />
+        <DeleteKeyDialog />
+        <RenameKeyDialog />
       </div>
     </TooltipProvider>
   );

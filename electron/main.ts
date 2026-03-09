@@ -18,9 +18,9 @@ const isDev = !app.isPackaged;
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
-    width: 800,
+    width: 1000,
     height: 700,
-    minWidth: 600,
+    minWidth: 800,
     minHeight: 500,
     show: false,
     titleBarStyle: 'hiddenInset',

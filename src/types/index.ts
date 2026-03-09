@@ -36,3 +36,31 @@ export interface FileSaveResult {
   publicKeyPath: string;
   error?: string;
 }
+
+// SSH Key Management Types
+export interface SSHKeyInfo {
+  name: string;
+  privateKeyPath: string;
+  publicKeyPath: string;
+  hasPublicKey: boolean;
+  hasPrivateKey: boolean;
+  algorithm: string;
+  created: string | null;
+  modified: string | null;
+  fingerprint?: string;
+  comment?: string;
+}
+
+export interface KeyDeleteResult {
+  success: boolean;
+  error?: string;
+}
+
+export interface KeyRenameResult {
+  success: boolean;
+  newPrivateKeyPath?: string;
+  newPublicKeyPath?: string;
+  error?: string;
+}
+
+export type AppView = 'list' | 'create';
