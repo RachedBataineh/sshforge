@@ -1,4 +1,4 @@
-import { Copy, Check, Eye, EyeOff, Key, ShieldCheck, Lock, Calendar, FileText } from 'lucide-react';
+import { Copy, Check, Eye, EyeOff, Key, Lock, Calendar, FileText } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -69,23 +69,11 @@ export function KeyDetailView() {
       <div className="max-w-3xl mx-auto space-y-4">
         {/* Key Header */}
         <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            <div className={cn(
-              'p-2 rounded-lg',
-              selectedKey.algorithm === 'ed25519' ? 'bg-green-500/10 text-green-500' :
-              selectedKey.algorithm === 'rsa' ? 'bg-blue-500/10 text-blue-500' :
-              'bg-purple-500/10 text-purple-500'
-            )}>
-              {selectedKey.algorithm === 'ed25519' ? <ShieldCheck className="h-5 w-5" /> :
-               selectedKey.algorithm === 'rsa' ? <Lock className="h-5 w-5" /> :
-               <Key className="h-5 w-5" />}
-            </div>
-            <div>
-              <h2 className="text-xl font-bold">{selectedKey.name}</h2>
-              <p className="text-sm text-muted-foreground">
-                {algorithmLabels[selectedKey.algorithm] || 'Unknown Algorithm'}
-              </p>
-            </div>
+          <div>
+            <h2 className="text-xl font-bold">{selectedKey.name}</h2>
+            <p className="text-sm text-muted-foreground">
+              {algorithmLabels[selectedKey.algorithm] || 'Unknown Algorithm'}
+            </p>
           </div>
         </div>
 
