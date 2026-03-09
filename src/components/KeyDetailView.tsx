@@ -20,12 +20,9 @@ function formatDate(dateStr: string | null): string {
   if (!dateStr) return 'Unknown';
   const date = new Date(dateStr);
   return date.toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'long',
+    month: 'short',
     day: 'numeric',
     year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
   });
 }
 
@@ -65,24 +62,24 @@ export function KeyDetailView() {
   };
 
   return (
-    <div className="flex-1 overflow-auto p-6">
-      <div className="max-w-3xl mx-auto space-y-6">
+    <div className="flex-1 overflow-auto p-4">
+      <div className="max-w-3xl mx-auto space-y-4">
         {/* Key Header */}
         <div className="flex items-start justify-between">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <div className={cn(
-              'p-3 rounded-xl',
+              'p-2.5 rounded-xl',
               selectedKey.algorithm === 'ed25519' ? 'bg-green-500/10 text-green-500' :
               selectedKey.algorithm === 'rsa' ? 'bg-blue-500/10 text-blue-500' :
               'bg-purple-500/10 text-purple-500'
             )}>
-              {selectedKey.algorithm === 'ed25519' ? <ShieldCheck className="h-6 w-6" /> :
-               selectedKey.algorithm === 'rsa' ? <Lock className="h-6 w-6" /> :
-               <Key className="h-6 w-6" />}
+              {selectedKey.algorithm === 'ed25519' ? <ShieldCheck className="h-5 w-5" /> :
+               selectedKey.algorithm === 'rsa' ? <Lock className="h-5 w-5" /> :
+               <Key className="h-5 w-5" />}
             </div>
             <div>
-              <h2 className="text-2xl font-bold">{selectedKey.name}</h2>
-              <p className="text-muted-foreground">
+              <h2 className="text-xl font-bold">{selectedKey.name}</h2>
+              <p className="text-sm text-muted-foreground">
                 {algorithmLabels[selectedKey.algorithm] || 'Unknown Algorithm'}
               </p>
             </div>
@@ -90,11 +87,11 @@ export function KeyDetailView() {
         </div>
 
         {/* Key Info Cards */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-3">
           <Card>
-            <CardContent className="pt-4">
-              <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                <Calendar className="h-4 w-4" />
+            <CardContent className="py-3">
+              <div className="flex items-center gap-2 text-muted-foreground mb-0.5">
+                <Calendar className="h-3.5 w-3.5" />
                 <span className="text-xs uppercase tracking-wider">Created</span>
               </div>
               <p className="font-medium text-sm">{formatDate(selectedKey.created)}</p>
@@ -102,9 +99,9 @@ export function KeyDetailView() {
           </Card>
 
           <Card>
-            <CardContent className="pt-4">
-              <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                <Key className="h-4 w-4" />
+            <CardContent className="py-3">
+              <div className="flex items-center gap-2 text-muted-foreground mb-0.5">
+                <Key className="h-3.5 w-3.5" />
                 <span className="text-xs uppercase tracking-wider">Comment</span>
               </div>
               <p className="font-medium text-sm truncate" title={selectedKey.comment || 'None'}>
@@ -116,37 +113,37 @@ export function KeyDetailView() {
 
         {/* Public Key */}
         <Card>
-          <CardHeader className="pb-3">
+          <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-base flex items-center gap-2">
+                <CardTitle className="text-sm flex items-center gap-2">
                   <FileText className="h-4 w-4" />
                   Public Key
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-xs">
                   Safe to share. Add this to servers and services.
                 </CardDescription>
               </div>
               <Button variant="secondary" size="sm" onClick={handleCopyPublic}>
                 {copiedPublic ? (
                   <>
-                    <Check className="h-4 w-4 mr-1 text-green-500" />
+                    <Check className="h-3.5 w-3.5 mr-1 text-green-500" />
                     Copied
                   </>
                 ) : (
                   <>
-                    <Copy className="h-4 w-4 mr-1" />
+                    <Copy className="h-3.5 w-3.5 mr-1" />
                     Copy
                   </>
                 )}
               </Button>
             </div>
           </CardHeader>
-          <CardContent>
-            <pre className="key-preview text-xs max-h-32 overflow-auto">
+          <CardContent className="pt-0">
+            <pre className="key-preview text-xs max-h-20 overflow-auto">
               {publicKeyContent || 'Unable to load public key'}
             </pre>
-            <p className="text-xs text-muted-foreground mt-2 font-mono truncate">
+            <p className="text-xs text-muted-foreground mt-1.5 font-mono truncate">
               {selectedKey.publicKeyPath}
             </p>
           </CardContent>
@@ -154,21 +151,21 @@ export function KeyDetailView() {
 
         {/* Private Key */}
         <Card className="border-amber-500/30">
-          <CardHeader className="pb-3">
+          <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-base flex items-center gap-2">
+                <CardTitle className="text-sm flex items-center gap-2">
                   <Lock className="h-4 w-4 text-amber-500" />
                   Private Key
-                  <span className="text-xs bg-amber-500/10 text-amber-600 px-2 py-0.5 rounded-full">
+                  <span className="text-xs bg-amber-500/10 text-amber-600 px-1.5 py-0.5 rounded-full">
                     Confidential
                   </span>
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-xs">
                   Never share this. Keep it secure.
                 </CardDescription>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -176,12 +173,12 @@ export function KeyDetailView() {
                 >
                   {showPrivateKey ? (
                     <>
-                      <EyeOff className="h-4 w-4 mr-1" />
+                      <EyeOff className="h-3.5 w-3.5 mr-1" />
                       Hide
                     </>
                   ) : (
                     <>
-                      <Eye className="h-4 w-4 mr-1" />
+                      <Eye className="h-3.5 w-3.5 mr-1" />
                       Show
                     </>
                   )}
@@ -189,12 +186,12 @@ export function KeyDetailView() {
                 <Button variant="secondary" size="sm" onClick={handleCopyPrivate}>
                   {copiedPrivate ? (
                     <>
-                      <Check className="h-4 w-4 mr-1 text-green-500" />
+                      <Check className="h-3.5 w-3.5 mr-1 text-green-500" />
                       Copied
                     </>
                   ) : (
                     <>
-                      <Copy className="h-4 w-4 mr-1" />
+                      <Copy className="h-3.5 w-3.5 mr-1" />
                       Copy
                     </>
                   )}
@@ -202,10 +199,10 @@ export function KeyDetailView() {
               </div>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-0">
             <div className="relative">
               <pre className={cn(
-                'key-preview text-xs max-h-48 overflow-auto transition-all',
+                'key-preview text-xs max-h-32 overflow-auto transition-all',
                 !showPrivateKey && 'blur-sm select-none'
               )}>
                 {privateKeyContent || 'Unable to load private key'}
@@ -214,6 +211,7 @@ export function KeyDetailView() {
                 <div className="absolute inset-0 flex items-center justify-center bg-background/50 rounded-lg">
                   <Button
                     variant="secondary"
+                    size="sm"
                     onClick={() => setShowPrivateKey(true)}
                     className="gap-2"
                   >
@@ -223,7 +221,7 @@ export function KeyDetailView() {
                 </div>
               )}
             </div>
-            <p className="text-xs text-muted-foreground mt-2 font-mono truncate">
+            <p className="text-xs text-muted-foreground mt-1.5 font-mono truncate">
               {selectedKey.privateKeyPath}
             </p>
           </CardContent>
