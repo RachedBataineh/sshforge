@@ -32,24 +32,11 @@ function writeMpint(bignum: Buffer): Buffer {
 }
 
 /**
- * Formats Ed25519 public key in OpenSSH format
+ * Base function to create OpenSSH private key format
  */
-function formatEd25519PublicKey(publicKeyBuffer: Buffer): Buffer {
-  // Ed25519 public key in OpenSSH format: ssh-ed25519 <base64-encoded>
-  // The base64 part is: string("ssh-ed25519") + string(public_key)
-  const keyType = 'ssh-ed25519';
-  return Buffer.concat([
-    writeString(keyType),
-    writeString(publicKeyBuffer),
-  ]);
-}
-
-/**
- * Formats Ed25519 private key in OpenSSH native format (unencrypted)
- */
-function formatEd25519PrivateKeyOpenSSH(
-  privateKeyBuffer: Buffer,
-  publicKeyBuffer: Buffer,
+function createOpenSSHPrivateKey(
+  publicKeyBlob: Buffer,
+  privateSectionData: Buffer,
   comment: string
 ): string {
   const AUTH_MAGIC = Buffer.from('openssh-key-v1\0');
@@ -58,22 +45,14 @@ function formatEd25519PrivateKeyOpenSSH(
   const kdfOptions = Buffer.alloc(0);
   const numKeys = 1;
 
-  // Public key blob
-  const publicKeyBlob = formatEd25519PublicKey(publicKeyBuffer);
-
   // Check ints (random, must match)
   const checkInt = crypto.randomBytes(4);
 
-  // Key type
-  const keyType = 'ssh-ed25519';
-
-  // Private section
+  // Build private section
   let privateSection = Buffer.concat([
     checkInt,
     checkInt,
-    writeString(keyType),
-    writeString(publicKeyBuffer),
-    writeString(privateKeyBuffer),
+    privateSectionData,
     writeString(comment),
   ]);
 
@@ -113,98 +92,40 @@ function formatEd25519PrivateKeyOpenSSH(
 }
 
 /**
- * Formats RSA public key in OpenSSH format from SPKI DER
+ * Formats Ed25519 public key in OpenSSH format
  */
-function formatRSAPublicKey(spkidDer: Buffer): Buffer {
-  // Find the BIT STRING (tag 0x03)
-  let bitStringStart = -1;
-  for (let i = 0; i < spkidDer.length - 1; i++) {
-    if (spkidDer[i] === 0x03) {
-      bitStringStart = i;
-      break;
-    }
-  }
+function formatEd25519PublicKey(publicKeyBuffer: Buffer): Buffer {
+  const keyType = 'ssh-ed25519';
+  return Buffer.concat([
+    writeString(keyType),
+    writeString(publicKeyBuffer),
+  ]);
+}
 
-  if (bitStringStart === -1) {
-    throw new Error('Invalid RSA SPKI format: BIT STRING not found');
-  }
+/**
+ * Formats Ed25519 private key in OpenSSH native format
+ */
+function formatEd25519PrivateKeyOpenSSH(
+  privateKeyBuffer: Buffer,
+  publicKeyBuffer: Buffer,
+  comment: string
+): string {
+  const publicKeyBlob = formatEd25519PublicKey(publicKeyBuffer);
+  const keyType = 'ssh-ed25519';
 
-  // Skip tag and length bytes
-  let offset = bitStringStart + 1;
-  let length = spkidDer[offset];
-  offset++;
+  const privateSectionData = Buffer.concat([
+    writeString(keyType),
+    writeString(publicKeyBuffer),
+    writeString(privateKeyBuffer),
+  ]);
 
-  // Handle long-form length if needed
-  if (length & 0x80) {
-    const numBytes = length & 0x7f;
-    length = 0;
-    for (let i = 0; i < numBytes; i++) {
-      length = (length << 8) | spkidDer[offset + i];
-    }
-    offset += numBytes;
-  }
+  return createOpenSSHPrivateKey(publicKeyBlob, privateSectionData, comment);
+}
 
-  // Skip unused bits byte
-  offset++;
-
-  // Now we're at the RSAPublicKey SEQUENCE
-  if (spkidDer[offset] !== 0x30) {
-    throw new Error('Invalid RSA public key format');
-  }
-  offset++;
-
-  // Skip SEQUENCE length
-  let seqLength = spkidDer[offset];
-  offset++;
-  if (seqLength & 0x80) {
-    const numBytes = seqLength & 0x7f;
-    seqLength = 0;
-    for (let i = 0; i < numBytes; i++) {
-      seqLength = (seqLength << 8) | spkidDer[offset + i];
-    }
-    offset += numBytes;
-  }
-
-  // Parse n (INTEGER)
-  if (spkidDer[offset] !== 0x02) {
-    throw new Error('Expected INTEGER for n');
-  }
-  offset++;
-
-  let nLength = spkidDer[offset];
-  offset++;
-  if (nLength & 0x80) {
-    const numBytes = nLength & 0x7f;
-    nLength = 0;
-    for (let i = 0; i < numBytes; i++) {
-      nLength = (nLength << 8) | spkidDer[offset + i];
-    }
-    offset += numBytes;
-  }
-
-  const n = spkidDer.slice(offset, offset + nLength);
-  offset += nLength;
-
-  // Parse e (INTEGER)
-  if (spkidDer[offset] !== 0x02) {
-    throw new Error('Expected INTEGER for e');
-  }
-  offset++;
-
-  let eLength = spkidDer[offset];
-  offset++;
-  if (eLength & 0x80) {
-    const numBytes = eLength & 0x7f;
-    eLength = 0;
-    for (let i = 0; i < numBytes; i++) {
-      eLength = (eLength << 8) | spkidDer[offset + i];
-    }
-    offset += numBytes;
-  }
-
-  const e = spkidDer.slice(offset, offset + eLength);
-
-  // Build OpenSSH format
+/**
+ * Formats RSA public key in OpenSSH format
+ */
+function formatRSAPublicKey(n: Buffer, e: Buffer): Buffer {
   const keyType = 'ssh-rsa';
   return Buffer.concat([
     writeString(keyType),
@@ -214,13 +135,289 @@ function formatRSAPublicKey(spkidDer: Buffer): Buffer {
 }
 
 /**
- * Formats ECDSA public key in OpenSSH format from SPKI DER
+ * Formats RSA private key in OpenSSH native format
  */
-function formatECDSAPublicKey(spkidDer: Buffer): Buffer {
+function formatRSAPrivateKeyOpenSSH(
+  n: Buffer, e: Buffer, d: Buffer,
+  iqmp: Buffer, p: Buffer, q: Buffer,
+  comment: string
+): string {
+  const keyType = 'ssh-rsa';
+
+  // Public key blob
+  const publicKeyBlob = formatRSAPublicKey(n, e);
+
+  // Private section data for RSA
+  const privateSectionData = Buffer.concat([
+    writeString(keyType),
+    writeMpint(n),
+    writeMpint(e),
+    writeMpint(d),
+    writeMpint(iqmp),
+    writeMpint(p),
+    writeMpint(q),
+  ]);
+
+  return createOpenSSHPrivateKey(publicKeyBlob, privateSectionData, comment);
+}
+
+/**
+ * Formats ECDSA public key in OpenSSH format
+ */
+function formatECDSAPublicKey(point: Buffer): Buffer {
+  const keyType = 'ecdsa-sha2-nistp521';
+  const curve = 'nistp521';
+
+  return Buffer.concat([
+    writeString(keyType),
+    writeString(curve),
+    writeString(point),
+  ]);
+}
+
+/**
+ * Formats ECDSA private key in OpenSSH native format
+ */
+function formatECDSAPrivateKeyOpenSSH(
+  point: Buffer,
+  scalar: Buffer,
+  comment: string
+): string {
+  const keyType = 'ecdsa-sha2-nistp521';
+  const curve = 'nistp521';
+
+  // Public key blob
+  const publicKeyBlob = formatECDSAPublicKey(point);
+
+  // Private section data for ECDSA
+  const privateSectionData = Buffer.concat([
+    writeString(keyType),
+    writeString(curve),
+    writeString(point),
+    writeMpint(scalar),
+  ]);
+
+  return createOpenSSHPrivateKey(publicKeyBlob, privateSectionData, comment);
+}
+
+/**
+ * ASN.1 parser helpers
+ */
+function parseASN1Length(buffer: Buffer, offset: number): { length: number; offset: number } {
+  let length = buffer[offset];
+  offset++;
+
+  if (length & 0x80) {
+    const numBytes = length & 0x7f;
+    length = 0;
+    for (let i = 0; i < numBytes; i++) {
+      length = (length << 8) | buffer[offset + i];
+    }
+    offset += numBytes;
+  }
+
+  return { length, offset };
+}
+
+function parseASN1Integer(buffer: Buffer, offset: number): { value: Buffer; offset: number } {
+  if (buffer[offset] !== 0x02) {
+    throw new Error(`Expected INTEGER tag (0x02), got 0x${buffer[offset].toString(16)}`);
+  }
+  offset++;
+
+  const { length, offset: newOffset } = parseASN1Length(buffer, offset);
+  const value = buffer.slice(newOffset, newOffset + length);
+
+  // Remove leading zero if present (used for sign in ASN.1)
+  let result = value;
+  if (value[0] === 0 && value.length > 1) {
+    result = value.slice(1);
+  }
+
+  return { value: result, offset: newOffset + length };
+}
+
+/**
+ * Extract RSA key components from PKCS#1 DER
+ */
+function parseRSAPrivateKeyPKCS1(der: Buffer): {
+  n: Buffer; e: Buffer; d: Buffer;
+  p: Buffer; q: Buffer;
+  dmp1: Buffer; dmq1: Buffer; iqmp: Buffer;
+} {
+  // RSAPrivateKey ::= SEQUENCE {
+  //   version           Version,
+  //   modulus           INTEGER,  -- n
+  //   publicExponent    INTEGER,  -- e
+  //   privateExponent   INTEGER,  -- d
+  //   prime1            INTEGER,  -- p
+  //   prime2            INTEGER,  -- q
+  //   exponent1         INTEGER,  -- d mod (p-1) = dmp1
+  //   exponent2         INTEGER,  -- d mod (q-1) = dmq1
+  //   coefficient       INTEGER   -- (inverse of q) mod p = iqmp
+  // }
+
+  let offset = 0;
+
+  // SEQUENCE tag
+  if (der[offset] !== 0x30) {
+    throw new Error('Expected SEQUENCE');
+  }
+  offset++;
+
+  // Skip SEQUENCE length
+  const { offset: newOffset } = parseASN1Length(der, offset);
+  offset = newOffset;
+
+  // Version
+  const version = parseASN1Integer(der, offset);
+  offset = version.offset;
+
+  // n (modulus)
+  const n = parseASN1Integer(der, offset);
+  offset = n.offset;
+
+  // e (public exponent)
+  const e = parseASN1Integer(der, offset);
+  offset = e.offset;
+
+  // d (private exponent)
+  const d = parseASN1Integer(der, offset);
+  offset = d.offset;
+
+  // p (prime1)
+  const p = parseASN1Integer(der, offset);
+  offset = p.offset;
+
+  // q (prime2)
+  const q = parseASN1Integer(der, offset);
+  offset = q.offset;
+
+  // dmp1 (exponent1)
+  const dmp1 = parseASN1Integer(der, offset);
+  offset = dmp1.offset;
+
+  // dmq1 (exponent2)
+  const dmq1 = parseASN1Integer(der, offset);
+  offset = dmq1.offset;
+
+  // iqmp (coefficient)
+  const iqmp = parseASN1Integer(der, offset);
+
+  return {
+    n: n.value,
+    e: e.value,
+    d: d.value,
+    p: p.value,
+    q: q.value,
+    dmp1: dmp1.value,
+    dmq1: dmq1.value,
+    iqmp: iqmp.value,
+  };
+}
+
+/**
+ * Extract ECDSA key components from PKCS#8 DER
+ */
+function parseECDSAPrivateKeyPKCS8(der: Buffer): { scalar: Buffer; point: Buffer } {
+  // ECPrivateKey ::= SEQUENCE {
+  //   version        INTEGER,
+  //   privateKey     OCTET STRING,
+  //   parameters [0] ECParameters OPTIONAL,
+  //   publicKey  [1] BIT STRING OPTIONAL
+  // }
+
+  // First, find the ECPrivateKey inside the PKCS#8 wrapper
+  // PKCS#8: SEQUENCE { version, privateKeyAlgorithm, privateKey }
+
+  let offset = 0;
+
+  // Outer SEQUENCE
+  if (der[offset] !== 0x30) {
+    throw new Error('Expected SEQUENCE');
+  }
+  offset++;
+
+  const { offset: outerOffset } = parseASN1Length(der, offset);
+  offset = outerOffset;
+
+  // Version (INTEGER)
+  const version = parseASN1Integer(der, offset);
+  offset = version.offset;
+
+  // privateKeyAlgorithm SEQUENCE
+  if (der[offset] !== 0x30) {
+    throw new Error('Expected privateKeyAlgorithm SEQUENCE');
+  }
+  offset++;
+
+  const { length: algoLength, offset: algoOffset } = parseASN1Length(der, offset);
+  offset = algoOffset + algoLength;
+
+  // privateKey OCTET STRING
+  if (der[offset] !== 0x04) {
+    throw new Error('Expected OCTET STRING for privateKey');
+  }
+  offset++;
+
+  const { length: pkLength, offset: pkOffset } = parseASN1Length(der, offset);
+  const ecPrivateKeyDer = der.slice(pkOffset, pkOffset + pkLength);
+
+  // Parse ECPrivateKey
+  let ecOffset = 0;
+
+  // SEQUENCE
+  if (ecPrivateKeyDer[ecOffset] !== 0x30) {
+    throw new Error('Expected SEQUENCE in ECPrivateKey');
+  }
+  ecOffset++;
+
+  const { offset: ecSeqOffset } = parseASN1Length(ecPrivateKeyDer, ecOffset);
+  ecOffset = ecSeqOffset;
+
+  // Version
+  const ecVersion = parseASN1Integer(ecPrivateKeyDer, ecOffset);
+  ecOffset = ecVersion.offset;
+
+  // privateKey OCTET STRING (the scalar)
+  if (ecPrivateKeyDer[ecOffset] !== 0x04) {
+    throw new Error('Expected OCTET STRING for scalar');
+  }
+  ecOffset++;
+
+  const { length: scalarLength, offset: scalarOffset } = parseASN1Length(ecPrivateKeyDer, ecOffset);
+  const scalar = ecPrivateKeyDer.slice(scalarOffset, scalarOffset + scalarLength);
+  ecOffset = scalarOffset + scalarLength;
+
+  // Skip parameters [0] if present
+  if (ecPrivateKeyDer[ecOffset] === 0xa0) {
+    ecOffset++;
+    const { length: paramLength, offset: paramOffset } = parseASN1Length(ecPrivateKeyDer, ecOffset);
+    ecOffset = paramOffset + paramLength;
+  }
+
+  // publicKey [1] BIT STRING
+  let point: Buffer;
+  if (ecPrivateKeyDer[ecOffset] === 0xa1) {
+    ecOffset++;
+    const { length: pubLength, offset: pubOffset } = parseASN1Length(ecPrivateKeyDer, ecOffset);
+    // Skip unused bits byte
+    point = ecPrivateKeyDer.slice(pubOffset + 1, pubOffset + pubLength);
+  } else {
+    throw new Error('Public key not found in ECPrivateKey');
+  }
+
+  return { scalar, point };
+}
+
+/**
+ * Extract public key point from ECDSA SPKI DER
+ */
+function parseECDSAPublicKeySPKI(der: Buffer): Buffer {
   // Find the BIT STRING (tag 0x03)
   let bitStringStart = -1;
-  for (let i = 0; i < spkidDer.length - 1; i++) {
-    if (spkidDer[i] === 0x03) {
+  for (let i = 0; i < der.length - 1; i++) {
+    if (der[i] === 0x03) {
       bitStringStart = i;
       break;
     }
@@ -230,31 +427,57 @@ function formatECDSAPublicKey(spkidDer: Buffer): Buffer {
     throw new Error('Invalid ECDSA SPKI format');
   }
 
-  // Skip tag and length
   let offset = bitStringStart + 1;
-  let length = spkidDer[offset];
-  offset++;
-
-  if (length & 0x80) {
-    const numBytes = length & 0x7f;
-    offset += numBytes;
-  }
+  const { length, offset: newOffset } = parseASN1Length(der, offset);
+  offset = newOffset;
 
   // Skip unused bits byte
   offset++;
 
-  // Extract the point
-  const point = spkidDer.slice(offset);
+  return der.slice(offset, offset + length - 1);
+}
 
-  // Build OpenSSH format
-  const keyType = 'ecdsa-sha2-nistp521';
-  const curve = 'nistp521';
+/**
+ * Extract n and e from RSA SPKI DER
+ */
+function parseRSAPublicKeySPKI(der: Buffer): { n: Buffer; e: Buffer } {
+  // Find the BIT STRING (tag 0x03)
+  let bitStringStart = -1;
+  for (let i = 0; i < der.length - 1; i++) {
+    if (der[i] === 0x03) {
+      bitStringStart = i;
+      break;
+    }
+  }
 
-  return Buffer.concat([
-    writeString(keyType),
-    writeString(curve),
-    writeString(point),
-  ]);
+  if (bitStringStart === -1) {
+    throw new Error('Invalid RSA SPKI format');
+  }
+
+  let offset = bitStringStart + 1;
+  const { offset: newOffset } = parseASN1Length(der, offset);
+  offset = newOffset;
+
+  // Skip unused bits byte
+  offset++;
+
+  // RSAPublicKey SEQUENCE
+  if (der[offset] !== 0x30) {
+    throw new Error('Expected SEQUENCE for RSAPublicKey');
+  }
+  offset++;
+
+  const { offset: seqOffset } = parseASN1Length(der, offset);
+  offset = seqOffset;
+
+  // n
+  const n = parseASN1Integer(der, offset);
+  offset = n.offset;
+
+  // e
+  const e = parseASN1Integer(der, offset);
+
+  return { n: n.value, e: e.value };
 }
 
 /**
@@ -271,9 +494,11 @@ function formatPublicKeyOpenSSH(
     case 'ed25519':
       sshKeyBuffer = formatEd25519PublicKey(keyData);
       break;
-    case 'rsa-4096':
-      sshKeyBuffer = formatRSAPublicKey(keyData);
+    case 'rsa-4096': {
+      const { n, e } = parseRSAPublicKeySPKI(keyData);
+      sshKeyBuffer = formatRSAPublicKey(n, e);
       break;
+    }
     case 'ecdsa':
       sshKeyBuffer = formatECDSAPublicKey(keyData);
       break;
@@ -324,7 +549,7 @@ function generateEd25519Key(_passphrase?: string, comment?: string): { privateKe
 /**
  * Generates an RSA 4096-bit key pair
  */
-function generateRSAKey(passphrase?: string): { privateKey: string; publicKeyData: Buffer } {
+function generateRSAKey(_passphrase?: string, comment?: string): { privateKey: string; publicKeyData: Buffer } {
   const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', {
     modulusLength: 4096,
     publicExponent: 0x10001,
@@ -333,29 +558,30 @@ function generateRSAKey(passphrase?: string): { privateKey: string; publicKeyDat
   // Export public key in SPKI DER format
   const publicKeySpki = publicKey.export({ type: 'spki', format: 'der' });
 
-  // Export private key
-  let privateKeyPem: string;
-  if (passphrase) {
-    privateKeyPem = privateKey.export({
-      type: 'pkcs8',
-      format: 'pem',
-      cipher: 'aes-256-cbc',
-      passphrase: passphrase,
-    }) as string;
-  } else {
-    privateKeyPem = privateKey.export({
-      type: 'pkcs8',
-      format: 'pem',
-    }) as string;
-  }
+  // Export private key in PKCS#1 DER format to extract components
+  const privateKeyPkcs1 = privateKey.export({ type: 'pkcs1', format: 'der' });
 
-  return { privateKey: privateKeyPem, publicKeyData: publicKeySpki };
+  // Parse the private key to extract components
+  const components = parseRSAPrivateKeyPKCS1(privateKeyPkcs1);
+
+  // Format in OpenSSH native format
+  const openSshPrivateKey = formatRSAPrivateKeyOpenSSH(
+    components.n,
+    components.e,
+    components.d,
+    components.iqmp,
+    components.p,
+    components.q,
+    comment || ''
+  );
+
+  return { privateKey: openSshPrivateKey, publicKeyData: publicKeySpki };
 }
 
 /**
  * Generates an ECDSA P-521 key pair
  */
-function generateECDSAKey(passphrase?: string): { privateKey: string; publicKeyData: Buffer } {
+function generateECDSAKey(_passphrase?: string, comment?: string): { privateKey: string; publicKeyData: Buffer } {
   const { publicKey, privateKey } = crypto.generateKeyPairSync('ec', {
     namedCurve: 'P-521',
   });
@@ -363,23 +589,23 @@ function generateECDSAKey(passphrase?: string): { privateKey: string; publicKeyD
   // Export public key in SPKI DER format
   const publicKeySpki = publicKey.export({ type: 'spki', format: 'der' });
 
-  // Export private key
-  let privateKeyPem: string;
-  if (passphrase) {
-    privateKeyPem = privateKey.export({
-      type: 'pkcs8',
-      format: 'pem',
-      cipher: 'aes-256-cbc',
-      passphrase: passphrase,
-    }) as string;
-  } else {
-    privateKeyPem = privateKey.export({
-      type: 'pkcs8',
-      format: 'pem',
-    }) as string;
-  }
+  // Extract the point from SPKI
+  const point = parseECDSAPublicKeySPKI(publicKeySpki);
 
-  return { privateKey: privateKeyPem, publicKeyData: publicKeySpki };
+  // Export private key in PKCS#8 DER format to extract scalar
+  const privateKeyPkcs8 = privateKey.export({ type: 'pkcs8', format: 'der' });
+
+  // Parse to extract scalar
+  const { scalar } = parseECDSAPrivateKeyPKCS8(privateKeyPkcs8);
+
+  // Format in OpenSSH native format
+  const openSshPrivateKey = formatECDSAPrivateKeyOpenSSH(
+    point,
+    scalar,
+    comment || ''
+  );
+
+  return { privateKey: openSshPrivateKey, publicKeyData: point };
 }
 
 /**
@@ -408,10 +634,10 @@ async function generateKeyPair(options: KeyGenerationOptions): Promise<Generated
       keyPair = generateEd25519Key(passphrase, comment);
       break;
     case 'rsa-4096':
-      keyPair = generateRSAKey(passphrase);
+      keyPair = generateRSAKey(passphrase, comment);
       break;
     case 'ecdsa':
-      keyPair = generateECDSAKey(passphrase);
+      keyPair = generateECDSAKey(passphrase, comment);
       break;
     default:
       throw new Error(`Unsupported algorithm: ${algorithm}`);
