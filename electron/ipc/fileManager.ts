@@ -303,9 +303,22 @@ async function selectDirectory(defaultPath?: string): Promise<string | null> {
 
 /**
  * Opens the containing folder in file manager
+ * If filePath is a directory, opens it directly
+ * If filePath is a file, opens its parent directory
  */
 async function openInFileManager(filePath: string): Promise<void> {
-  await shell.openPath(path.dirname(filePath));
+  // Check if it's a directory or file
+  try {
+    const stats = fs.statSync(filePath);
+    if (stats.isDirectory()) {
+      await shell.openPath(filePath);
+    } else {
+      await shell.openPath(path.dirname(filePath));
+    }
+  } catch {
+    // If we can't stat the path, just try to open the parent
+    await shell.openPath(path.dirname(filePath));
+  }
 }
 
 /**
