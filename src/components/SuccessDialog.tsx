@@ -57,13 +57,13 @@ export function SuccessDialog() {
 
   return (
     <Dialog open={showSuccess} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-green-500/10 rounded-lg">
+            <div className="p-2 bg-green-500/10 rounded-lg flex-shrink-0">
               <CheckCircle2 className="h-6 w-6 text-green-500" />
             </div>
-            <div>
+            <div className="min-w-0">
               <DialogTitle>Key Generated Successfully!</DialogTitle>
               <DialogDescription>
                 Your SSH key pair has been created and saved.
@@ -75,11 +75,11 @@ export function SuccessDialog() {
         <div className="space-y-4 mt-4">
           {/* Key Info */}
           <div className="flex items-center gap-4 p-3 bg-muted/50 rounded-lg">
-            <div className="p-2 bg-primary/10 rounded-lg">
+            <div className="p-2 bg-primary/10 rounded-lg flex-shrink-0">
               <Key className="h-5 w-5 text-primary" />
             </div>
-            <div>
-              <p className="font-medium">{generatedKey.keyName}</p>
+            <div className="min-w-0 flex-1">
+              <p className="font-medium truncate">{generatedKey.keyName}</p>
               <p className="text-sm text-muted-foreground">{algoInfo.name}</p>
             </div>
           </div>
@@ -87,11 +87,11 @@ export function SuccessDialog() {
           {/* Public Key */}
           <div className="space-y-2">
             <label className="text-sm font-medium flex items-center gap-2">
-              <FileText className="h-4 w-4" />
+              <FileText className="h-4 w-4 flex-shrink-0" />
               Public Key
             </label>
             <div className="relative group">
-              <pre className="key-preview text-xs max-h-24 overflow-y-auto">
+              <pre className="key-preview text-xs max-h-24 overflow-auto break-all">
                 {generatedKey.publicKey}
               </pre>
               <Button
@@ -116,9 +116,9 @@ export function SuccessDialog() {
           </div>
 
           {/* Fingerprint */}
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-muted-foreground">Fingerprint:</span>
-            <code className="font-mono text-xs bg-muted px-2 py-1 rounded">
+          <div className="flex items-center gap-2 text-sm flex-wrap">
+            <span className="text-muted-foreground flex-shrink-0">Fingerprint:</span>
+            <code className="font-mono text-xs bg-muted px-2 py-1 rounded break-all">
               {generatedKey.fingerprint}
             </code>
           </div>
@@ -126,16 +126,16 @@ export function SuccessDialog() {
           {/* File Locations */}
           <div className="space-y-2">
             <label className="text-sm font-medium">File Locations</label>
-            <div className="space-y-1 text-sm">
-              <div className="flex items-center gap-2">
-                <span className="text-muted-foreground w-16">Private:</span>
-                <code className="font-mono text-xs bg-muted px-2 py-1 rounded flex-1 truncate">
+            <div className="space-y-1.5 text-sm">
+              <div className="flex items-start gap-2">
+                <span className="text-muted-foreground w-14 flex-shrink-0 pt-0.5">Private:</span>
+                <code className="font-mono text-xs bg-muted px-2 py-1 rounded flex-1 break-all">
                   {privateKeyPath}
                 </code>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-muted-foreground w-16">Public:</span>
-                <code className="font-mono text-xs bg-muted px-2 py-1 rounded flex-1 truncate">
+              <div className="flex items-start gap-2">
+                <span className="text-muted-foreground w-14 flex-shrink-0 pt-0.5">Public:</span>
+                <code className="font-mono text-xs bg-muted px-2 py-1 rounded flex-1 break-all">
                   {publicKeyPath}
                 </code>
               </div>
