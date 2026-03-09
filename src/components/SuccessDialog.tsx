@@ -86,18 +86,15 @@ export function SuccessDialog() {
 
           {/* Public Key */}
           <div className="space-y-1.5">
-            <label className="text-sm font-medium flex items-center gap-2">
-              <FileText className="h-4 w-4 flex-shrink-0" />
-              Public Key
-            </label>
-            <div className="relative">
-              <pre className="text-xs bg-muted/50 p-2.5 rounded-lg max-h-20 overflow-auto whitespace-pre-wrap break-all font-mono">
-                {generatedKey.publicKey}
-              </pre>
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium flex items-center gap-2">
+                <FileText className="h-4 w-4 flex-shrink-0" />
+                Public Key
+              </label>
               <Button
                 size="sm"
-                variant="secondary"
-                className="absolute top-1.5 right-1.5 h-7"
+                variant="ghost"
+                className="h-7 px-2"
                 onClick={handleCopy}
               >
                 {copied ? (
@@ -113,6 +110,9 @@ export function SuccessDialog() {
                 )}
               </Button>
             </div>
+            <pre className="text-xs bg-muted/50 p-2.5 rounded-lg max-h-20 overflow-auto whitespace-pre-wrap break-all font-mono">
+              {generatedKey.publicKey}
+            </pre>
           </div>
 
           {/* Fingerprint */}
