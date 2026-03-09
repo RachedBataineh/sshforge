@@ -116,11 +116,13 @@ export function SuccessDialog() {
           </div>
 
           {/* Fingerprint */}
-          <div className="p-3 bg-muted/50 rounded-lg">
-            <span className="text-sm text-muted-foreground">Fingerprint</span>
-            <code className="block font-mono text-xs mt-1 break-all">
-              {generatedKey.fingerprint}
-            </code>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Fingerprint</label>
+            <div className="p-3 bg-muted/50 rounded-lg">
+              <code className="font-mono text-xs break-all">
+                {generatedKey.fingerprint}
+              </code>
+            </div>
           </div>
 
           {/* File Locations */}
