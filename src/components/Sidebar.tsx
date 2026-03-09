@@ -132,7 +132,7 @@ export function Sidebar() {
 
       {/* Keys List */}
       <ScrollArea className="flex-1">
-        <div className="px-2 pb-2">
+        <div className="p-2">
           {keys.length === 0 ? (
             <div className="text-center py-8 px-4">
               <FolderOpen className="h-10 w-10 mx-auto text-muted-foreground/50 mb-2" />
