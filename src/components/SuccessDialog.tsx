@@ -72,7 +72,7 @@ export function SuccessDialog() {
           </div>
         </DialogHeader>
 
-        <div className="space-y-3 mt-4 overflow-y-auto flex-1 min-h-0">
+        <div className="space-y-4 mt-4 overflow-y-auto flex-1 min-h-0">
           {/* Key Info */}
           <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
             <div className="p-2 bg-primary/10 rounded-lg flex-shrink-0">
@@ -85,7 +85,7 @@ export function SuccessDialog() {
           </div>
 
           {/* Public Key */}
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-sm font-medium flex items-center gap-2">
                 <FileText className="h-4 w-4 flex-shrink-0" />
@@ -110,32 +110,32 @@ export function SuccessDialog() {
                 )}
               </Button>
             </div>
-            <pre className="text-xs bg-muted/50 p-2.5 rounded-lg max-h-20 overflow-auto whitespace-pre-wrap break-all font-mono">
+            <pre className="text-xs bg-muted/50 p-3 rounded-lg max-h-20 overflow-auto whitespace-pre-wrap break-all font-mono">
               {generatedKey.publicKey}
             </pre>
           </div>
 
           {/* Fingerprint */}
-          <div className="text-sm">
-            <span className="text-muted-foreground">Fingerprint: </span>
-            <code className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded break-all">
+          <div className="p-3 bg-muted/50 rounded-lg">
+            <span className="text-sm text-muted-foreground">Fingerprint</span>
+            <code className="block font-mono text-xs mt-1 break-all">
               {generatedKey.fingerprint}
             </code>
           </div>
 
           {/* File Locations */}
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             <label className="text-sm font-medium">File Locations</label>
-            <div className="space-y-1 text-xs">
+            <div className="p-3 bg-muted/50 rounded-lg space-y-2 text-xs">
               <div className="flex gap-2">
-                <span className="text-muted-foreground w-12 flex-shrink-0">Private:</span>
-                <code className="font-mono bg-muted px-1.5 py-0.5 rounded break-all flex-1">
+                <span className="text-muted-foreground w-14 flex-shrink-0">Private:</span>
+                <code className="font-mono break-all flex-1">
                   {privateKeyPath}
                 </code>
               </div>
               <div className="flex gap-2">
-                <span className="text-muted-foreground w-12 flex-shrink-0">Public:</span>
-                <code className="font-mono bg-muted px-1.5 py-0.5 rounded break-all flex-1">
+                <span className="text-muted-foreground w-14 flex-shrink-0">Public:</span>
+                <code className="font-mono break-all flex-1">
                   {publicKeyPath}
                 </code>
               </div>
