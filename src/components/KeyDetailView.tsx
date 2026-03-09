@@ -20,9 +20,12 @@ function formatDate(dateStr: string | null): string {
   if (!dateStr) return 'Unknown';
   const date = new Date(dateStr);
   return date.toLocaleDateString('en-US', {
-    month: 'short',
+    weekday: 'long',
+    month: 'long',
     day: 'numeric',
     year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
   });
 }
 
