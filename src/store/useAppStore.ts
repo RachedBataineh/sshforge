@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { SSHKeyInfo, AppView, SSHServerConnection, SSHConfigEntry } from '@/types';
+import type { SSHKeyInfo, AppView, SSHServerConnection, SSHConfigEntry, SSHAgentKey } from '@/types';
 
 interface AppStore {
   // View state
@@ -24,6 +24,10 @@ interface AppStore {
   // Server connections
   serverConnections: SSHServerConnection[];
   showAddServerDialog: boolean;
+
+  // SSH Agent
+  agentKeys: SSHAgentKey[];
+  keysInAgent: Set<string>; // Set of private key paths loaded in agent
 
   // Actions
   setCurrentView: (view: AppView) => void;
@@ -54,6 +58,13 @@ interface AppStore {
   connectToServer: (connection: SSHServerConnection) => Promise<boolean>;
   forgetServer: (hostname: string) => Promise<boolean>;
   forgetServersForKey: (keyPath: string) => Promise<boolean>;
+
+  // SSH Agent actions
+  loadAgentKeys: () => Promise<void>;
+  checkKeyInAgent: (privateKeyPath: string) => Promise<boolean>;
+  addKeyToAgent: (privateKeyPath: string, passphrase: string) => Promise<boolean>;
+  removeKeyFromAgent: (privateKeyPath: string) => Promise<boolean>;
+  isKeyInAgent: (privateKeyPath: string) => boolean;
 }
 
 export const useAppStore = create<AppStore>((set, get) => ({
@@ -73,6 +84,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
   renameValue: '',
   serverConnections: [],
   showAddServerDialog: false,
+  agentKeys: [],
+  keysInAgent: new Set<string>(),
 
   // Simple setters
   setCurrentView: (view) => set({ currentView: view }),
@@ -294,6 +307,90 @@ export const useAppStore = create<AppStore>((set, get) => ({
       }
     }
     return allSuccess;
+  },
+
+  // Load keys currently in SSH agent
+  loadAgentKeys: async () => {
+    try {
+      const result = await window.electronAPI.listAgentKeys();
+      if (result.success) {
+        set({ agentKeys: result.keys });
+      }
+    } catch (error) {
+      console.error('Error loading agent keys:', error);
+    }
+  },
+
+  // Check if a specific key is in the agent
+  checkKeyInAgent: async (privateKeyPath: string) => {
+    try {
+      const result = await window.electronAPI.checkKeyInAgent(privateKeyPath);
+      if (result.success) {
+        const { keysInAgent } = get();
+        const newSet = new Set(keysInAgent);
+        if (result.isInAgent) {
+          newSet.add(privateKeyPath);
+        } else {
+          newSet.delete(privateKeyPath);
+        }
+        set({ keysInAgent: newSet });
+        return result.isInAgent;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error checking key in agent:', error);
+      return false;
+    }
+  },
+
+  // Add key to SSH agent
+  addKeyToAgent: async (privateKeyPath: string, passphrase: string) => {
+    try {
+      const result = await window.electronAPI.addKeyToAgent(privateKeyPath, passphrase);
+      if (result.success) {
+        // Update the set
+        const { keysInAgent } = get();
+        const newSet = new Set(keysInAgent);
+        newSet.add(privateKeyPath);
+        set({ keysInAgent: newSet });
+        return true;
+      } else {
+        set({ error: result.error || 'Failed to add key to agent' });
+        return false;
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to add key to agent';
+      set({ error: message });
+      return false;
+    }
+  },
+
+  // Remove key from SSH agent
+  removeKeyFromAgent: async (privateKeyPath: string) => {
+    try {
+      const result = await window.electronAPI.removeKeyFromAgent(privateKeyPath);
+      if (result.success) {
+        // Update the set
+        const { keysInAgent } = get();
+        const newSet = new Set(keysInAgent);
+        newSet.delete(privateKeyPath);
+        set({ keysInAgent: newSet });
+        return true;
+      } else {
+        set({ error: result.error || 'Failed to remove key from agent' });
+        return false;
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to remove key from agent';
+      set({ error: message });
+      return false;
+    }
+  },
+
+  // Check if key is in agent (synchronous, uses cached state)
+  isKeyInAgent: (privateKeyPath: string) => {
+    const { keysInAgent } = get();
+    return keysInAgent.has(privateKeyPath);
   },
 
 }));

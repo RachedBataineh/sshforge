@@ -1,4 +1,4 @@
-import type { KeyGenerationOptions, GeneratedKey, SaveOptions, FileSaveResult, SSHKeyInfo, KeyDeleteResult, KeyRenameResult, SSHConfigEntry } from './index';
+import type { KeyGenerationOptions, GeneratedKey, SaveOptions, FileSaveResult, SSHKeyInfo, KeyDeleteResult, KeyRenameResult, SSHConfigEntry, SSHAgentKey } from './index';
 
 declare global {
   interface Window {
@@ -40,6 +40,12 @@ declare global {
       removeSSHConfigEntry: (alias: string) => Promise<{ success: boolean; error?: string }>;
       openTerminal: (options: { host: string; user?: string; identityFile?: string; port?: number; alias?: string }) => Promise<{ success: boolean; error?: string }>;
       forgetServer: (hostname: string) => Promise<{ success: boolean; error?: string }>;
+
+      // SSH Agent
+      listAgentKeys: () => Promise<{ success: boolean; keys: SSHAgentKey[]; error?: string }>;
+      addKeyToAgent: (privateKeyPath: string, passphrase: string) => Promise<{ success: boolean; error?: string }>;
+      removeKeyFromAgent: (privateKeyPath: string) => Promise<{ success: boolean; error?: string }>;
+      checkKeyInAgent: (privateKeyPath: string) => Promise<{ success: boolean; isInAgent: boolean }>;
     };
   }
 }

@@ -88,6 +88,23 @@ const electronAPI = {
   forgetServer: (hostname) => {
     return ipcRenderer.invoke("ssh:forget-server", hostname);
   },
+
+  // SSH Agent
+  listAgentKeys: () => {
+    return ipcRenderer.invoke("ssh-agent:list");
+  },
+
+  addKeyToAgent: (privateKeyPath, passphrase) => {
+    return ipcRenderer.invoke("ssh-agent:add", privateKeyPath, passphrase);
+  },
+
+  removeKeyFromAgent: (privateKeyPath) => {
+    return ipcRenderer.invoke("ssh-agent:remove", privateKeyPath);
+  },
+
+  checkKeyInAgent: (privateKeyPath) => {
+    return ipcRenderer.invoke("ssh-agent:check", privateKeyPath);
+  },
 };
 
 contextBridge.exposeInMainWorld("electronAPI", electronAPI);

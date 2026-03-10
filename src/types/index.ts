@@ -80,3 +80,11 @@ export interface SSHConfigEntry {
   identityFile: string;
   port?: number;
 }
+
+// SSH Agent Types
+export interface SSHAgentKey {
+  publicKeyPath: string;
+  fingerprint: string;
+  type: string;
+  comment: string;
+}

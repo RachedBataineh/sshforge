@@ -1,10 +1,11 @@
-import { Copy, Check, Eye, EyeOff, KeyRound, Lock, Calendar, FileText, Pencil, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { Copy, Check, Eye, EyeOff, KeyRound, Lock, Calendar, FileText, Pencil, Trash2, Key, MinusCircle, CheckCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAppStore } from '@/store/useAppStore';
 import { cn } from '@/lib/utils';
 import { ServerConnectionsSection } from './ServerConnectionsSection';
+import { AddToAgentDialog } from './AddToAgentDialog';
 
 const algorithmLabels: Record<string, string> = {
   'ed25519': 'Ed25519',
@@ -42,9 +43,21 @@ export function KeyDetailView() {
     setKeyToRename,
     setShowRenameDialog,
     setRenameValue,
+    isKeyInAgent,
+    checkKeyInAgent,
+    removeKeyFromAgent,
   } = useAppStore();
   const [copiedPublic, setCopiedPublic] = useState(false);
   const [copiedPrivate, setCopiedPrivate] = useState(false);
+  const [showAddToAgentDialog, setShowAddToAgentDialog] = useState(false);
+  const [isRemovingFromAgent, setIsRemovingFromAgent] = useState(false);
+
+  // Check if key is in agent when selected key changes
+  useEffect(() => {
+    if (selectedKey) {
+      checkKeyInAgent(selectedKey.privateKeyPath);
+    }
+  }, [selectedKey, checkKeyInAgent]);
 
   if (!selectedKey) {
     return (
@@ -75,6 +88,18 @@ export function KeyDetailView() {
       setTimeout(() => setCopiedPrivate(false), 2000);
     }
   };
+
+  const handleRemoveFromAgent = async () => {
+    if (!selectedKey) return;
+    setIsRemovingFromAgent(true);
+    try {
+      await removeKeyFromAgent(selectedKey.privateKeyPath);
+    } finally {
+      setIsRemovingFromAgent(false);
+    }
+  };
+
+  const keyInAgent = selectedKey ? isKeyInAgent(selectedKey.privateKeyPath) : false;
 
   return (
     <div className="flex-1 overflow-auto p-6">
@@ -253,12 +278,90 @@ export function KeyDetailView() {
           </CardContent>
         </Card>
 
+        {/* SSH Agent Section */}
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Key className="h-4 w-4" />
+                  SSH Agent
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Load key into agent to avoid typing passphrase
+                </CardDescription>
+              </div>
+              {keyInAgent ? (
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle className="h-3.5 w-3.5 text-green-500" />
+                  <span className="text-xs text-green-600 font-medium">Loaded</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5">
+                  <MinusCircle className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">Not loaded</span>
+                </div>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="flex gap-2">
+              {keyInAgent ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRemoveFromAgent}
+                  disabled={isRemovingFromAgent}
+                  className="flex-1"
+                >
+                  {isRemovingFromAgent ? (
+                    <>
+                      <span className="animate-spin mr-1">⏳</span>
+                      Removing...
+                    </>
+                  ) : (
+                    <>
+                      <MinusCircle className="h-3.5 w-3.5 mr-1" />
+                      Remove from Agent
+                    </>
+                  )}
+                </Button>
+              ) : (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setShowAddToAgentDialog(true)}
+                  className="flex-1"
+                >
+                  <Key className="h-3.5 w-3.5 mr-1" />
+                  Add to Agent
+                </Button>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              {keyInAgent
+                ? 'Key is loaded. SSH connections will use it automatically.'
+                : 'Add key to agent to avoid entering passphrase for each connection.'}
+            </p>
+          </CardContent>
+        </Card>
+
         {/* Server Connections */}
         <ServerConnectionsSection
           identityFilePath={selectedKey.privateKeyPath}
           keyName={selectedKey.name}
         />
       </div>
+
+      {/* Add to Agent Dialog */}
+      {selectedKey && (
+        <AddToAgentDialog
+          open={showAddToAgentDialog}
+          onOpenChange={setShowAddToAgentDialog}
+          privateKeyPath={selectedKey.privateKeyPath}
+          keyName={selectedKey.name}
+        />
+      )}
     </div>
   );
 }
