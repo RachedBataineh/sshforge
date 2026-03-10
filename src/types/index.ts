@@ -63,3 +63,20 @@ export interface KeyRenameResult {
 }
 
 export type AppView = 'list' | 'create';
+
+// SSH Server Connection Types
+export interface SSHServerConnection {
+  alias: string;           // Host alias (e.g., "my-server")
+  hostName: string;        // IP or domain (e.g., "192.168.1.100")
+  user: string;            // SSH username
+  port?: number;           // Optional port (default 22)
+  identityFilePath: string; // Path to private key
+}
+
+export interface SSHConfigEntry {
+  host: string;
+  hostName: string;
+  user: string;
+  identityFile: string;
+  port?: number;
+}

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { SSHKeyInfo, AppView } from '@/types';
+import type { SSHKeyInfo, AppView, SSHServerConnection, SSHConfigEntry } from '@/types';
 
 interface AppStore {
   // View state
@@ -21,6 +21,10 @@ interface AppStore {
   keyToRename: SSHKeyInfo | null;
   renameValue: string;
 
+  // Server connections
+  serverConnections: SSHServerConnection[];
+  showAddServerDialog: boolean;
+
   // Actions
   setCurrentView: (view: AppView) => void;
   setSelectedKey: (key: SSHKeyInfo | null) => void;
@@ -35,12 +39,20 @@ interface AppStore {
   setKeyToDelete: (key: SSHKeyInfo | null) => void;
   setKeyToRename: (key: SSHKeyInfo | null) => void;
   setRenameValue: (value: string) => void;
+  setShowAddServerDialog: (show: boolean) => void;
 
   // Complex actions
   loadKeys: () => Promise<void>;
   selectKey: (key: SSHKeyInfo) => Promise<void>;
   deleteSelectedKey: () => Promise<boolean>;
   renameSelectedKey: (newName: string) => Promise<boolean>;
+
+  // Server connection actions
+  loadServerConnections: () => Promise<void>;
+  addServerConnection: (keyPath: string, connection: Omit<SSHServerConnection, 'identityFilePath'>) => Promise<boolean>;
+  removeServerConnection: (alias: string) => Promise<boolean>;
+  connectToServer: (connection: SSHServerConnection) => Promise<boolean>;
+  forgetServer: (hostname: string) => Promise<boolean>;
 }
 
 export const useAppStore = create<AppStore>((set, get) => ({
@@ -58,6 +70,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
   keyToDelete: null,
   keyToRename: null,
   renameValue: '',
+  serverConnections: [],
+  showAddServerDialog: false,
 
   // Simple setters
   setCurrentView: (view) => set({ currentView: view }),
@@ -73,6 +87,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   setKeyToDelete: (key) => set({ keyToDelete: key }),
   setKeyToRename: (key) => set({ keyToRename: key }),
   setRenameValue: (value) => set({ renameValue: value }),
+  setShowAddServerDialog: (show) => set({ showAddServerDialog: show }),
 
   // Load all keys from the SSH directory
   loadKeys: async () => {
@@ -152,6 +167,112 @@ export const useAppStore = create<AppStore>((set, get) => ({
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to rename key';
+      set({ error: message });
+      return false;
+    }
+  },
+
+  // Load server connections from SSH config
+  loadServerConnections: async () => {
+    try {
+      const result = await window.electronAPI.readSSHConfig();
+      if (result.success) {
+        const connections: SSHServerConnection[] = result.entries.map((entry: SSHConfigEntry) => ({
+          alias: entry.host,
+          hostName: entry.hostName,
+          user: entry.user,
+          port: entry.port,
+          identityFilePath: entry.identityFile,
+        }));
+        set({ serverConnections: connections });
+      } else {
+        console.error('Failed to load SSH config:', result.error);
+      }
+    } catch (error) {
+      console.error('Error loading server connections:', error);
+    }
+  },
+
+  // Add a new server connection
+  addServerConnection: async (keyPath: string, connection: Omit<SSHServerConnection, 'identityFilePath'>) => {
+    try {
+      const entry: SSHConfigEntry = {
+        host: connection.alias,
+        hostName: connection.hostName,
+        user: connection.user,
+        port: connection.port,
+        identityFile: keyPath,
+      };
+
+      const result = await window.electronAPI.addSSHConfigEntry(entry);
+      if (result.success) {
+        await get().loadServerConnections();
+        set({ showAddServerDialog: false });
+        return true;
+      } else {
+        set({ error: result.error || 'Failed to add server connection' });
+        return false;
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to add server connection';
+      set({ error: message });
+      return false;
+    }
+  },
+
+  // Remove a server connection
+  removeServerConnection: async (alias: string) => {
+    try {
+      const result = await window.electronAPI.removeSSHConfigEntry(alias);
+      if (result.success) {
+        await get().loadServerConnections();
+        return true;
+      } else {
+        set({ error: result.error || 'Failed to remove server connection' });
+        return false;
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to remove server connection';
+      set({ error: message });
+      return false;
+    }
+  },
+
+  // Connect to server via Terminal
+  connectToServer: async (connection: SSHServerConnection) => {
+    try {
+      const result = await window.electronAPI.openTerminal({
+        host: connection.hostName,
+        user: connection.user,
+        identityFile: connection.identityFilePath,
+        port: connection.port,
+        alias: connection.alias, // Use alias for simpler "ssh alias" command
+      });
+      if (result.success) {
+        return true;
+      } else {
+        set({ error: result.error || 'Failed to open terminal' });
+        return false;
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to open terminal';
+      set({ error: message });
+      return false;
+    }
+  },
+
+  // Forget server (remove from known_hosts)
+  forgetServer: async (hostname: string) => {
+    try {
+      const result = await window.electronAPI.forgetServer(hostname);
+      if (result.success) {
+        return true;
+      } else {
+        set({ error: result.error || 'Failed to forget server' });
+        return false;
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to forget server';
       set({ error: message });
       return false;
     }

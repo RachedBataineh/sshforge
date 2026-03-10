@@ -67,6 +67,27 @@ const electronAPI = {
   removeAllListeners: (channel) => {
     ipcRenderer.removeAllListeners(channel);
   },
+
+  // SSH Config
+  readSSHConfig: () => {
+    return ipcRenderer.invoke("ssh:read-config");
+  },
+
+  addSSHConfigEntry: (entry) => {
+    return ipcRenderer.invoke("ssh:add-config-entry", entry);
+  },
+
+  removeSSHConfigEntry: (alias) => {
+    return ipcRenderer.invoke("ssh:remove-config-entry", alias);
+  },
+
+  openTerminal: (options) => {
+    return ipcRenderer.invoke("ssh:open-terminal", options);
+  },
+
+  forgetServer: (hostname) => {
+    return ipcRenderer.invoke("ssh:forget-server", hostname);
+  },
 };
 
 contextBridge.exposeInMainWorld("electronAPI", electronAPI);

@@ -1,4 +1,4 @@
-import type { KeyGenerationOptions, GeneratedKey, SaveOptions, FileSaveResult, SSHKeyInfo, KeyDeleteResult, KeyRenameResult } from './index';
+import type { KeyGenerationOptions, GeneratedKey, SaveOptions, FileSaveResult, SSHKeyInfo, KeyDeleteResult, KeyRenameResult, SSHConfigEntry } from './index';
 
 declare global {
   interface Window {
@@ -33,6 +33,13 @@ declare global {
 
       // Cleanup
       removeAllListeners: (channel: string) => void;
+
+      // SSH Config
+      readSSHConfig: () => Promise<{ success: boolean; entries: SSHConfigEntry[]; error?: string }>;
+      addSSHConfigEntry: (entry: SSHConfigEntry) => Promise<{ success: boolean; error?: string }>;
+      removeSSHConfigEntry: (alias: string) => Promise<{ success: boolean; error?: string }>;
+      openTerminal: (options: { host: string; user?: string; identityFile?: string; port?: number; alias?: string }) => Promise<{ success: boolean; error?: string }>;
+      forgetServer: (hostname: string) => Promise<{ success: boolean; error?: string }>;
     };
   }
 }

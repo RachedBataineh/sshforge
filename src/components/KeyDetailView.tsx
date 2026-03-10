@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAppStore } from '@/store/useAppStore';
 import { cn } from '@/lib/utils';
+import { ServerConnectionsSection } from './ServerConnectionsSection';
 
 const algorithmLabels: Record<string, string> = {
   'ed25519': 'Ed25519',
@@ -251,6 +252,12 @@ export function KeyDetailView() {
             </p>
           </CardContent>
         </Card>
+
+        {/* Server Connections */}
+        <ServerConnectionsSection
+          identityFilePath={selectedKey.privateKeyPath}
+          keyName={selectedKey.name}
+        />
       </div>
     </div>
   );

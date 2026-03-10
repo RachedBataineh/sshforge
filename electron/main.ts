@@ -3,6 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { registerKeyGeneratorHandlers } from './ipc/keyGenerator';
 import { registerFileManagerHandlers } from './ipc/fileManager';
+import { registerSSHConfigHandlers } from './ipc/sshConfig';
 
 // Get __dirname equivalent in ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -66,6 +67,7 @@ function createWindow(): void {
 function registerHandlers(): void {
   registerKeyGeneratorHandlers();
   registerFileManagerHandlers();
+  registerSSHConfigHandlers();
 }
 
 // App lifecycle
