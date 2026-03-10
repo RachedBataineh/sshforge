@@ -5,6 +5,7 @@ import {
   KeyRound,
   FolderOpen,
 } from 'lucide-react';
+import logo from '@/assets/logo.png';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -44,9 +45,7 @@ export function Sidebar() {
       {/* Header */}
       <div className="p-3 space-y-3">
         <div className="flex items-center gap-2">
-          <div className="p-2 bg-primary/10 rounded-lg">
-            <KeyRound className="h-5 w-5 text-primary" />
-          </div>
+          <img src={logo} alt="SSHForge" className="h-9 w-9 rounded-lg" />
           <div>
             <h1 className="font-bold text-lg">SSHForge</h1>
             <p className="text-xs text-muted-foreground">Key Manager</p>

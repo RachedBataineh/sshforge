@@ -1,4 +1,4 @@
-import { app, BrowserWindow, shell, nativeTheme } from 'electron';
+import { app, BrowserWindow, shell, nativeTheme, Menu, MenuItem } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { registerKeyGeneratorHandlers } from './ipc/keyGenerator';
@@ -18,6 +18,87 @@ let mainWindow: BrowserWindow | null = null;
 // Check if running in development
 const isDev = !app.isPackaged;
 
+// Create production menu (without DevTools)
+function createProductionMenu(): Menu {
+  const template: (MenuItem | MenuItem[])[] = [
+    // App menu (macOS)
+    {
+      label: app.name,
+      submenu: [
+        { role: 'about' as const },
+        { type: 'separator' as const },
+        { role: 'services' as const },
+        { type: 'separator' as const },
+        { role: 'hide' as const },
+        { role: 'hideOthers' as const },
+        { role: 'unhide' as const },
+        { type: 'separator' as const },
+        { role: 'quit' as const },
+      ],
+    },
+    // File menu
+    {
+      label: 'File',
+      submenu: [{ role: 'close' as const }],
+    },
+    // Edit menu
+    {
+      label: 'Edit',
+      submenu: [
+        { role: 'undo' as const },
+        { role: 'redo' as const },
+        { type: 'separator' as const },
+        { role: 'cut' as const },
+        { role: 'copy' as const },
+        { role: 'paste' as const },
+        { role: 'delete' as const },
+        { type: 'separator' as const },
+        { role: 'selectAll' as const },
+      ],
+    },
+    // View menu (without DevTools)
+    {
+      label: 'View',
+      submenu: [
+        { role: 'reload' as const },
+        { role: 'forceReload' as const },
+        { type: 'separator' as const },
+        { role: 'resetZoom' as const },
+        { role: 'zoomIn' as const },
+        { role: 'zoomOut' as const },
+        { type: 'separator' as const },
+        { role: 'togglefullscreen' as const },
+      ],
+    },
+    // Window menu
+    {
+      label: 'Window',
+      submenu: [
+        { role: 'minimize' as const },
+        { role: 'zoom' as const },
+        { type: 'separator' as const },
+        { role: 'front' as const },
+        { type: 'separator' as const },
+        { role: 'window' as const },
+      ],
+    },
+    // Help menu
+    {
+      role: 'help' as const,
+      submenu: [
+        {
+          label: 'Learn More',
+          click: async () => {
+            await shell.openExternal('https://github.com/sshforge');
+          },
+        },
+      ],
+    },
+  ];
+
+  return Menu.buildFromTemplate(template as MenuItem[]);
+}
+
 function createWindow(): void {
   mainWindow = new BrowserWindow({
     width: 1000,
@@ -32,6 +113,7 @@ function createWindow(): void {
       nodeIntegration: false,
       contextIsolation: true,
       sandbox: false,
+      devTools: isDev,
     },
     backgroundColor: nativeTheme.shouldUseDarkColors ? '#0a0a0a' : '#ffffff',
   });
@@ -44,6 +126,8 @@ function createWindow(): void {
     mainWindow.webContents.openDevTools({ mode: 'detach' });
   } else {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+    // Set custom menu without DevTools in production
+    Menu.setApplicationMenu(createProductionMenu());
   }
 
   // Show window when ready
