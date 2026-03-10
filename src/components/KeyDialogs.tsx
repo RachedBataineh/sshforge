@@ -256,13 +256,13 @@ export function OverwriteKeyDialog() {
 
   return (
     <Dialog open={showOverwriteDialog} onOpenChange={setShowOverwriteDialog}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-md w-[calc(100%-2rem)] max-h-[85vh] overflow-hidden flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-amber-500/10 rounded-lg">
-              <AlertOctagon className="h-5 w-5 text-amber-500" />
+            <div className="p-2 bg-amber-500/10 rounded-lg flex-shrink-0">
+              <AlertOctagon className="h-6 w-6 text-amber-500" />
             </div>
-            <div>
+            <div className="min-w-0 overflow-hidden">
               <DialogTitle>Overwrite Existing Key?</DialogTitle>
               <DialogDescription>
                 This action cannot be undone.
@@ -271,7 +271,7 @@ export function OverwriteKeyDialog() {
           </div>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="space-y-4 mt-4 overflow-y-auto flex-1 min-h-0">
           <Alert className="border-amber-500/50 bg-amber-500/10">
             <AlertTriangle className="h-4 w-4 text-amber-500" />
             <AlertDescription className="text-amber-700 dark:text-amber-400">
@@ -289,7 +289,7 @@ export function OverwriteKeyDialog() {
             </AlertDescription>
           </Alert>
 
-          <div className="p-3 bg-muted rounded-lg">
+          <div className="p-3 bg-muted/50 rounded-lg">
             <p className="text-sm font-medium">New key will be saved to:</p>
             <p className="text-xs text-muted-foreground font-mono truncate">
               {defaultPath}/{keyName}
@@ -297,18 +297,19 @@ export function OverwriteKeyDialog() {
           </div>
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-0">
-          <Button variant="outline" onClick={handleCancel}>
+        <div className="flex gap-2 pt-2">
+          <Button variant="outline" onClick={handleCancel} className="flex-1 h-9">
             Cancel
           </Button>
           <Button
             variant="destructive"
             onClick={handleOverwrite}
             disabled={isOverwriting}
+            className="flex-1 h-9"
           >
             {isOverwriting ? 'Overwriting...' : 'Overwrite Key'}
           </Button>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );
