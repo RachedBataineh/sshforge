@@ -1,4 +1,4 @@
-import { Copy, Check, Eye, EyeOff, Key, Lock, Calendar, FileText } from 'lucide-react';
+import { Copy, Check, Eye, EyeOff, Key, Lock, Calendar, FileText, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,7 +30,18 @@ function formatDate(dateStr: string | null): string {
 }
 
 export function KeyDetailView() {
-  const { selectedKey, publicKeyContent, privateKeyContent, showPrivateKey, setShowPrivateKey } = useAppStore();
+  const {
+    selectedKey,
+    publicKeyContent,
+    privateKeyContent,
+    showPrivateKey,
+    setShowPrivateKey,
+    setKeyToDelete,
+    setShowDeleteDialog,
+    setKeyToRename,
+    setShowRenameDialog,
+    setRenameValue,
+  } = useAppStore();
   const [copiedPublic, setCopiedPublic] = useState(false);
   const [copiedPrivate, setCopiedPrivate] = useState(false);
 
@@ -69,13 +80,36 @@ export function KeyDetailView() {
       <div className="max-w-3xl mx-auto space-y-4">
         {/* Key Header */}
         <div className="flex items-start justify-between">
-          <div>
+          <div className="flex items-center gap-2">
             <h2 className="text-xl font-bold">{selectedKey.name}</h2>
-            <p className="text-sm text-muted-foreground">
-              {algorithmLabels[selectedKey.algorithm] || 'Unknown Algorithm'}
-            </p>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={() => {
+                setKeyToRename(selectedKey);
+                setRenameValue(selectedKey.name);
+                setShowRenameDialog(true);
+              }}
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </Button>
           </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 hover:bg-destructive/10 hover:text-destructive"
+            onClick={() => {
+              setKeyToDelete(selectedKey);
+              setShowDeleteDialog(true);
+            }}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
         </div>
+        <p className="text-sm text-muted-foreground -mt-2">
+          {algorithmLabels[selectedKey.algorithm] || 'Unknown Algorithm'}
+        </p>
 
         {/* Key Info Cards */}
         <div className="grid grid-cols-2 gap-3">

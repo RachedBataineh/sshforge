@@ -3,8 +3,6 @@ import {
   Key,
   Plus,
   RefreshCw,
-  Trash2,
-  Pencil,
   KeyRound,
   FolderOpen,
 } from 'lucide-react';
@@ -50,11 +48,6 @@ export function Sidebar() {
     loadKeys,
     selectKey,
     setCurrentView,
-    setKeyToDelete,
-    setShowDeleteDialog,
-    setKeyToRename,
-    setShowRenameDialog,
-    setRenameValue,
   } = useAppStore();
 
   useEffect(() => {
@@ -64,19 +57,6 @@ export function Sidebar() {
   const handleKeyClick = (key: typeof keys[0]) => {
     selectKey(key);
     setCurrentView('list');
-  };
-
-  const handleDeleteClick = (e: React.MouseEvent, key: typeof keys[0]) => {
-    e.stopPropagation();
-    setKeyToDelete(key);
-    setShowDeleteDialog(true);
-  };
-
-  const handleRenameClick = (e: React.MouseEvent, key: typeof keys[0]) => {
-    e.stopPropagation();
-    setKeyToRename(key);
-    setRenameValue(key.name);
-    setShowRenameDialog(true);
   };
 
   return (
@@ -141,7 +121,7 @@ export function Sidebar() {
                   key={key.privateKeyPath}
                   onClick={() => handleKeyClick(key)}
                   className={cn(
-                    'group flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors',
+                    'flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors',
                     'hover:bg-accent',
                     selectedKey?.privateKeyPath === key.privateKeyPath && 'bg-accent ring-1 ring-primary/20'
                   )}
@@ -158,25 +138,6 @@ export function Sidebar() {
                     <p className="text-xs text-muted-foreground truncate">
                       {formatAlgorithm(key.algorithm)}
                     </p>
-                  </div>
-
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={(e) => handleRenameClick(e, key)}
-                    >
-                      <Pencil className="h-3 w-3" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 hover:bg-destructive/10 hover:text-destructive"
-                      onClick={(e) => handleDeleteClick(e, key)}
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
                   </div>
                 </div>
               ))}
