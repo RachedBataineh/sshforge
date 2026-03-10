@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import {
-  Key,
   Plus,
   RefreshCw,
   KeyRound,
@@ -65,7 +64,7 @@ export function Sidebar() {
       <div className="p-3 space-y-3">
         <div className="flex items-center gap-2">
           <div className="p-2 bg-primary/10 rounded-lg">
-            <Key className="h-5 w-5 text-primary" />
+            <KeyRound className="h-5 w-5 text-primary" />
           </div>
           <div>
             <h1 className="font-bold text-lg">SSHForge</h1>
