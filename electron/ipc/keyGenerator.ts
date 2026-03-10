@@ -462,8 +462,25 @@ function parseECDSAPrivateKeyPKCS8(der: Buffer): { scalar: Buffer; point: Buffer
   let point: Buffer;
   if (ecPrivateKeyDer[ecOffset] === 0xa1) {
     ecOffset++;
-    const { length: pubLength, offset: pubOffset } = parseASN1Length(ecPrivateKeyDer, ecOffset);
-    point = ecPrivateKeyDer.slice(pubOffset + 1, pubOffset + pubLength);
+    const { length: pubContainerLength, offset: pubContainerOffset } = parseASN1Length(ecPrivateKeyDer, ecOffset);
+    // pubContainerOffset now points to BIT STRING inside [1]
+    // pubContainerLength is the length of [1] content
+
+    // Verify it's a BIT STRING
+    if (ecPrivateKeyDer[pubContainerOffset] !== 0x03) {
+      throw new Error('Expected BIT STRING for public key in [1]');
+    }
+    const bitStringTagOffset = pubContainerOffset + 1;
+    const { length: bitStringLength, offset: bitStringContentOffset } = parseASN1Length(ecPrivateKeyDer, bitStringTagOffset);
+
+    // Skip unused bits byte (should be 0x00)
+    const unusedBits = ecPrivateKeyDer[bitStringContentOffset];
+    if (unusedBits !== 0x00) {
+      throw new Error(`Expected 0 unused bits in public key BIT STRING, got ${unusedBits}`);
+    }
+
+    // Extract point (BIT STRING content minus unused bits byte)
+    point = ecPrivateKeyDer.slice(bitStringContentOffset + 1, bitStringContentOffset + bitStringLength);
   } else {
     throw new Error('Public key not found in ECPrivateKey');
   }
@@ -473,27 +490,54 @@ function parseECDSAPrivateKeyPKCS8(der: Buffer): { scalar: Buffer; point: Buffer
 
 /**
  * Extract public key point from ECDSA SPKI DER
+ * SPKI format for ECDSA:
+ * SEQUENCE {
+ *   SEQUENCE { OID ecPublicKey, OID curve },
+ *   BIT STRING { 0x00 unused_bits, point }
+ * }
  */
 function parseECDSAPublicKeySPKI(der: Buffer): Buffer {
-  let bitStringStart = -1;
-  for (let i = 0; i < der.length - 1; i++) {
-    if (der[i] === 0x03) {
-      bitStringStart = i;
-      break;
-    }
+  let offset = 0;
+
+  // Outer SEQUENCE
+  if (der[offset] !== 0x30) {
+    throw new Error('Expected outer SEQUENCE');
   }
-
-  if (bitStringStart === -1) {
-    throw new Error('Invalid ECDSA SPKI format');
-  }
-
-  let offset = bitStringStart + 1;
-  const { length, offset: newOffset } = parseASN1Length(der, offset);
-  offset = newOffset;
-
   offset++;
 
-  return der.slice(offset, offset + length - 1);
+  const { offset: outerContentOffset } = parseASN1Length(der, offset);
+  offset = outerContentOffset;
+
+  // Skip algorithm identifier SEQUENCE
+  if (der[offset] !== 0x30) {
+    throw new Error('Expected algorithm SEQUENCE');
+  }
+  offset++;
+
+  const { length: algoLength, offset: algoOffset } = parseASN1Length(der, offset);
+  offset = algoOffset + algoLength;
+
+  // BIT STRING containing the point
+  if (der[offset] !== 0x03) {
+    throw new Error('Expected BIT STRING');
+  }
+  offset++;
+
+  const { length: bitStringLength, offset: bitStringOffset } = parseASN1Length(der, offset);
+  offset = bitStringOffset;
+
+  // Skip unused bits byte (should be 0x00)
+  const unusedBits = der[offset];
+  if (unusedBits !== 0x00) {
+    throw new Error(`Expected 0 unused bits, got ${unusedBits}`);
+  }
+  offset++;
+
+  // The point is the rest of the BIT STRING content
+  const pointLength = bitStringLength - 1;
+  const point = der.slice(offset, offset + pointLength);
+
+  return point;
 }
 
 /**
