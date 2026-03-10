@@ -126,7 +126,7 @@ export function KeyDetailView() {
           <Card>
             <CardContent className="py-3">
               <div className="flex items-center gap-2 text-muted-foreground mb-0.5">
-                <KeyRound className="h-3.5 w-3.5" />
+                <FileText className="h-3.5 w-3.5" />
                 <span className="text-xs uppercase tracking-wider">Comment</span>
               </div>
               <p className="font-medium text-sm truncate" title={selectedKey.comment || 'None'}>
@@ -142,7 +142,7 @@ export function KeyDetailView() {
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="text-sm flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
+                  <KeyRound className="h-4 w-4" />
                   Public Key
                 </CardTitle>
                 <CardDescription className="text-xs">
