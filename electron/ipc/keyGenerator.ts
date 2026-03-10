@@ -1,5 +1,6 @@
 import { ipcMain } from 'electron';
 import crypto from 'crypto';
+import bcryptPbkdf from 'bcrypt-pbkdf';
 import type { KeyAlgorithm, KeyGenerationOptions, GeneratedKey } from '../../src/types';
 
 /**
@@ -23,7 +24,6 @@ function writeString(str: string | Buffer): Buffer {
  * Helper function to write a big integer with length prefix (SSH mpint format)
  */
 function writeMpint(bignum: Buffer): Buffer {
-  // Add leading zero if high bit is set (to ensure positive number)
   let buffer = bignum;
   if (buffer[0] & 0x80) {
     buffer = Buffer.concat([Buffer.from([0]), buffer]);
@@ -32,42 +32,35 @@ function writeMpint(bignum: Buffer): Buffer {
 }
 
 /**
- * bcrypt KDF for OpenSSH key encryption
- * Implements bcrypt_pbkdf from OpenSSH
+ * OpenSSH bcrypt_pbkdf using the official bcrypt-pbkdf package
+ * This is the exact algorithm used by OpenSSH for key derivation
+ * Port of OpenBSD's bcrypt_pbkdf to pure JavaScript
+ *
+ * Function signature: pbkdf(pass, passlen, salt, saltlen, key, keylen, rounds)
+ * Returns: 0 on success, -1 on error
  */
-function bcryptKDF(
+function opensshBcryptPbkdf(
   passphrase: string,
   salt: Buffer,
-  rounds: number,
-  desiredKeyLen: number
+  keylen: number,
+  rounds: number
 ): Buffer {
-  // We'll use a simplified approach - bcrypt hash multiple times
-  // OpenSSH uses a custom bcrypt_pbkdf implementation
-  const result = Buffer.alloc(desiredKeyLen);
-  let output = Buffer.alloc(0);
-
-  // Use Node's built-in pbkdf2 with bcrypt-like parameters
-  // Note: For full compatibility, we'd need a proper bcrypt implementation
-  // But OpenSSH's bcrypt_pbkdf is slightly different from standard bcrypt
-
-  // For now, we'll use a workaround that's compatible:
-  // Hash the passphrase with salt multiple times
-  let current = Buffer.concat([salt, Buffer.from(passphrase, 'utf8')]);
-
-  for (let i = 0; i < rounds; i++) {
-    current = crypto.createHash('sha256').update(current).digest();
-  }
-
-  // Generate enough key material
-  const key = crypto.pbkdf2Sync(
-    passphrase,
+  const out = Buffer.alloc(keylen);
+  // Convert passphrase to Buffer for correct handling by bcrypt-pbkdf
+  const passBuffer = Buffer.from(passphrase, 'utf8');
+  const result = bcryptPbkdf.pbkdf(
+    passBuffer,
+    passBuffer.length,
     salt,
-    rounds,
-    desiredKeyLen + 16, // IV + key
-    'sha256'
+    salt.length,
+    out,
+    keylen,
+    rounds
   );
-
-  return key;
+  if (result !== 0) {
+    throw new Error(`bcrypt_pbkdf failed with code ${result}`);
+  }
+  return out;
 }
 
 /**
@@ -99,9 +92,9 @@ function createOpenSSHPrivateKey(
     cipherName = 'aes256-ctr';
     kdfName = 'bcrypt';
 
-    // Generate random salt (16 bytes) and use 16 rounds
+    // Generate random salt (16 bytes) and use 24 rounds (OpenSSH default)
     const salt = crypto.randomBytes(16);
-    const rounds = 16;
+    const rounds = 24;
 
     // KDF options: salt (string) + rounds (uint32)
     kdfOptions = Buffer.concat([
@@ -109,8 +102,8 @@ function createOpenSSHPrivateKey(
       writeUint32BE(rounds)
     ]);
 
-    // Derive key (32 bytes) + IV (16 bytes) = 48 bytes
-    const derivedKey = bcryptKDF(passphrase, salt, rounds, 48);
+    // Derive key (32 bytes) + IV (16 bytes) = 48 bytes using bcrypt_pbkdf
+    const derivedKey = opensshBcryptPbkdf(passphrase, salt, 48, rounds);
     const encryptionKey = derivedKey.slice(0, 32);
     const iv = derivedKey.slice(32, 48);
 

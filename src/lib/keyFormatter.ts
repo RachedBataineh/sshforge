@@ -18,7 +18,13 @@ export function formatPublicKeyOpenSSH(
     case 'rsa-4096':
       keyType = 'ssh-rsa';
       break;
-    case 'ecdsa':
+    case 'ecdsa-p256':
+      keyType = 'ecdsa-sha2-nistp256';
+      break;
+    case 'ecdsa-p384':
+      keyType = 'ecdsa-sha2-nistp384';
+      break;
+    case 'ecdsa-p521':
       keyType = 'ecdsa-sha2-nistp521';
       break;
     default:
@@ -46,7 +52,7 @@ export function formatPrivateKeyOpenSSH(
   // For Ed25519 and ECDSA, we want OpenSSH format
   // For RSA, PKCS#1 PEM format is fine
 
-  if (algorithm === 'ed25519' || algorithm === 'ecdsa') {
+  if (algorithm === 'ed25519' || algorithm.startsWith('ecdsa-')) {
     // Convert to OpenSSH private key format
     return convertToOpenSSHPrivateFormat(privateKeyPem);
   }
