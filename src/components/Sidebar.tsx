@@ -6,8 +6,6 @@ import {
   Trash2,
   Pencil,
   KeyRound,
-  ShieldCheck,
-  Lock,
   FolderOpen,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -18,34 +16,29 @@ import { cn } from '@/lib/utils';
 
 const algorithmIcons: Record<string, React.ReactNode> = {
   'ed25519': <KeyRound className="h-4 w-4" />,
-  'rsa': <ShieldCheck className="h-4 w-4" />,
-  'ecdsa-p256': <Lock className="h-4 w-4" />,
-  'ecdsa-p384': <Lock className="h-4 w-4" />,
-  'ecdsa-p521': <Lock className="h-4 w-4" />,
-  'sk-ed25519': <Key className="h-4 w-4" />,
-  'sk-ecdsa': <Key className="h-4 w-4" />,
-  'unknown': <Key className="h-4 w-4" />,
+  'rsa': <KeyRound className="h-4 w-4" />,
+  'ecdsa-p256': <KeyRound className="h-4 w-4" />,
+  'ecdsa-p384': <KeyRound className="h-4 w-4" />,
+  'ecdsa-p521': <KeyRound className="h-4 w-4" />,
+  'sk-ed25519': <KeyRound className="h-4 w-4" />,
+  'sk-ecdsa': <KeyRound className="h-4 w-4" />,
+  'unknown': <KeyRound className="h-4 w-4" />,
 };
 
 const algorithmColors: Record<string, string> = {
   'ed25519': 'text-green-500 bg-green-500/10',
-  'rsa': 'text-blue-500 bg-blue-500/10',
-  'ecdsa-p256': 'text-purple-500 bg-purple-500/10',
-  'ecdsa-p384': 'text-purple-500 bg-purple-500/10',
-  'ecdsa-p521': 'text-purple-500 bg-purple-500/10',
-  'sk-ed25519': 'text-orange-500 bg-orange-500/10',
-  'sk-ecdsa': 'text-orange-500 bg-orange-500/10',
-  'unknown': 'text-gray-500 bg-gray-500/10',
+  'rsa': 'text-green-500 bg-green-500/10',
+  'ecdsa-p256': 'text-green-500 bg-green-500/10',
+  'ecdsa-p384': 'text-green-500 bg-green-500/10',
+  'ecdsa-p521': 'text-green-500 bg-green-500/10',
+  'sk-ed25519': 'text-green-500 bg-green-500/10',
+  'sk-ecdsa': 'text-green-500 bg-green-500/10',
+  'unknown': 'text-green-500 bg-green-500/10',
 };
 
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return 'Unknown';
-  const date = new Date(dateStr);
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
+function formatAlgorithm(algorithm: string): string {
+  if (algorithm === 'rsa' || algorithm === 'RSA') return 'RSA-4096';
+  return algorithm.toUpperCase();
 }
 
 export function Sidebar() {
@@ -160,10 +153,10 @@ export function Sidebar() {
                     {algorithmIcons[key.algorithm] || algorithmIcons['unknown']}
                   </div>
 
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 overflow-hidden">
                     <p className="font-medium text-sm truncate">{key.name}</p>
                     <p className="text-xs text-muted-foreground truncate">
-                      {key.algorithm.toUpperCase()} • {formatDate(key.modified)}
+                      {formatAlgorithm(key.algorithm)}
                     </p>
                   </div>
 
