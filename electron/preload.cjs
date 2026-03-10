@@ -93,6 +93,36 @@ const electronAPI = {
   setTitleBarOverlay: (colors) => {
     return ipcRenderer.invoke("window:set-title-bar-overlay", colors);
   },
+
+  // Auto-updater
+  checkForUpdates: () => {
+    return ipcRenderer.invoke("updater:check-for-updates");
+  },
+
+  downloadUpdate: () => {
+    return ipcRenderer.invoke("updater:download-update");
+  },
+
+  installUpdate: () => {
+    return ipcRenderer.invoke("updater:install-update");
+  },
+
+  getAppVersion: () => {
+    return ipcRenderer.invoke("updater:get-version");
+  },
+
+  // Update events
+  onUpdateAvailable: (callback) => {
+    ipcRenderer.on("update-available", (_event, info) => callback(info));
+  },
+
+  onUpdateProgress: (callback) => {
+    ipcRenderer.on("update-progress", (_event, progress) => callback(progress));
+  },
+
+  onUpdateDownloaded: (callback) => {
+    ipcRenderer.on("update-downloaded", (_event, info) => callback(info));
+  },
 };
 
 contextBridge.exposeInMainWorld("electronAPI", electronAPI);

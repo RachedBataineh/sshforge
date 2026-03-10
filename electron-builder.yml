@@ -49,4 +49,7 @@ nsis:
   deleteAppDataOnUninstall: false
 dmg:
   artifactName: ${name}-${version}-${arch}.${ext}
-publish: null
+publish:
+  provider: github
+  owner: RachedBataineh
+  repo: sshforge

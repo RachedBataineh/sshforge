@@ -43,6 +43,17 @@ declare global {
 
       // Window appearance (Windows/Linux only — no-op on macOS)
       setTitleBarOverlay: (colors: { color: string; symbolColor: string }) => Promise<void>;
+
+      // Auto-updater
+      checkForUpdates: () => Promise<{ available: boolean; version?: string; message?: string; error?: string }>;
+      downloadUpdate: () => Promise<{ success: boolean; message?: string; error?: string }>;
+      installUpdate: () => Promise<void>;
+      getAppVersion: () => Promise<string>;
+
+      // Update events
+      onUpdateAvailable: (callback: (info: { version: string; releaseDate?: string; releaseNotes?: string }) => void) => void;
+      onUpdateProgress: (callback: (progress: { percent: number; transferred: number; total: number }) => void) => void;
+      onUpdateDownloaded: (callback: (info: { version: string }) => void) => void;
     };
   }
 }

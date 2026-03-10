@@ -5,6 +5,7 @@ import { KeyGeneratorForm } from '@/components/KeyGeneratorForm';
 import { DeleteKeyDialog, RenameKeyDialog, OverwriteKeyDialog } from '@/components/KeyDialogs';
 import { SuccessDialog } from '@/components/SuccessDialog';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { UpdateNotification } from '@/components/UpdateNotification';
 import { useAppStore } from '@/store/useAppStore';
 import { KeyRound } from 'lucide-react';
 import { useState, useEffect } from 'react';
@@ -77,6 +78,7 @@ function App() {
         <DeleteKeyDialog />
         <RenameKeyDialog />
         <OverwriteKeyDialog />
+        <UpdateNotification />
       </div>
     </TooltipProvider>
   );

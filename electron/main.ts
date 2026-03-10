@@ -1,6 +1,7 @@
-import { app, BrowserWindow, shell, nativeTheme, Menu, MenuItem, ipcMain } from 'electron';
+import { app, BrowserWindow, shell, nativeTheme, Menu, ipcMain, dialog } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { autoUpdater } from 'electron-updater';
 import { registerKeyGeneratorHandlers } from './ipc/keyGenerator';
 import { registerFileManagerHandlers } from './ipc/fileManager';
 import { registerSSHConfigHandlers } from './ipc/sshConfig';
@@ -16,6 +17,62 @@ let mainWindow: BrowserWindow | null = null;
 
 // Check if running in development
 const isDev = !app.isPackaged;
+
+// Auto-updater configuration
+function setupAutoUpdater(): void {
+  // Don't check for updates in development
+  if (isDev) return;
+
+  autoUpdater.autoDownload = false;
+  autoUpdater.autoInstallOnAppQuit = true;
+
+  // Check for updates
+  autoUpdater.checkForUpdates();
+
+  // Check for updates every 4 hours
+  setInterval(() => {
+    autoUpdater.checkForUpdates();
+  }, 4 * 60 * 60 * 1000);
+
+  // Handle update available
+  autoUpdater.on('update-available', (info) => {
+    if (!mainWindow) return;
+
+    mainWindow.webContents.send('update-available', {
+      version: info.version,
+      releaseDate: info.releaseDate,
+      releaseNotes: info.releaseNotes,
+    });
+  });
+
+  // Handle update not available
+  autoUpdater.on('update-not-available', () => {
+    console.log('No updates available');
+  });
+
+  // Handle update download progress
+  autoUpdater.on('download-progress', (progress) => {
+    if (!mainWindow) return;
+    mainWindow.webContents.send('update-progress', {
+      percent: progress.percent,
+      transferred: progress.transferred,
+      total: progress.total,
+    });
+  });
+
+  // Handle update downloaded
+  autoUpdater.on('update-downloaded', (info) => {
+    if (!mainWindow) return;
+    mainWindow.webContents.send('update-downloaded', {
+      version: info.version,
+    });
+  });
+
+  // Handle errors
+  autoUpdater.on('error', (error) => {
+    console.error('Auto-updater error:', error);
+  });
+}
 
 // Create production menu for macOS (without DevTools)
 function createMacProductionMenu(): Menu {
@@ -179,6 +236,37 @@ function registerHandlers(): void {
       }
     }
   );
+
+  // Auto-updater IPC handlers
+  ipcMain.handle('updater:check-for-updates', async () => {
+    if (isDev) return { available: false, message: 'Updates not available in development' };
+    try {
+      const result = await autoUpdater.checkForUpdates();
+      return { available: true, version: result?.updateInfo.version };
+    } catch (error) {
+      return { available: false, error: String(error) };
+    }
+  });
+
+  ipcMain.handle('updater:download-update', async () => {
+    if (isDev) return { success: false, message: 'Updates not available in development' };
+    try {
+      await autoUpdater.downloadUpdate();
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: String(error) };
+    }
+  });
+
+  ipcMain.handle('updater:install-update', () => {
+    if (isDev) return;
+    // This will quit the app and install the update
+    autoUpdater.quitAndInstall();
+  });
+
+  ipcMain.handle('updater:get-version', () => {
+    return app.getVersion();
+  });
 }
 
 // Keep the overlay in sync when the OS itself switches between light/dark
@@ -198,6 +286,7 @@ nativeTheme.on('updated', () => {
 app.whenReady().then(() => {
   registerHandlers();
   createWindow();
+  setupAutoUpdater();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
