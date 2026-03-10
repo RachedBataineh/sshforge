@@ -3,7 +3,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -217,13 +216,13 @@ export function RenameKeyDialog() {
 
   return (
     <Dialog open={showRenameDialog} onOpenChange={setShowRenameDialog}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-md w-[calc(100%-2rem)] max-h-[85vh] overflow-hidden flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <Pencil className="h-5 w-5 text-primary" />
+            <div className="p-2 bg-primary/10 rounded-lg flex-shrink-0">
+              <Pencil className="h-6 w-6 text-primary" />
             </div>
-            <div>
+            <div className="min-w-0 overflow-hidden">
               <DialogTitle>Rename SSH Key</DialogTitle>
               <DialogDescription>
                 Enter a new name for this key.
@@ -232,7 +231,7 @@ export function RenameKeyDialog() {
           </div>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="space-y-4 mt-4 overflow-y-auto flex-1 min-h-0 p-1 -m-1">
           {error && (
             <Alert variant="destructive">
               <AlertDescription>{error}</AlertDescription>
@@ -255,17 +254,18 @@ export function RenameKeyDialog() {
           </div>
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-0">
-          <Button variant="outline" onClick={() => setShowRenameDialog(false)}>
+        <div className="flex gap-2 pt-2">
+          <Button variant="outline" onClick={() => setShowRenameDialog(false)} className="flex-1 h-9">
             Cancel
           </Button>
           <Button
             onClick={handleRename}
             disabled={isRenaming || !renameValue.trim()}
+            className="flex-1 h-9"
           >
             {isRenaming ? 'Renaming...' : 'Rename Key'}
           </Button>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );
