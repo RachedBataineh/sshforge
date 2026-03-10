@@ -26,6 +26,16 @@ export function DeleteKeyDialog() {
   } = useAppStore();
 
   const [isDeleting, setIsDeleting] = useState(false);
+  const [confirmStep, setConfirmStep] = useState(false);
+  const [confirmKeyName, setConfirmKeyName] = useState('');
+
+  // Reset state when dialog opens
+  useEffect(() => {
+    if (showDeleteDialog) {
+      setConfirmStep(false);
+      setConfirmKeyName('');
+    }
+  }, [showDeleteDialog]);
 
   const handleDelete = async () => {
     setIsDeleting(true);
@@ -36,17 +46,96 @@ export function DeleteKeyDialog() {
     }
   };
 
+  const handleBack = () => {
+    setConfirmStep(false);
+    setConfirmKeyName('');
+  };
+
+  const handleProceedToConfirm = () => {
+    setConfirmStep(true);
+  };
+
   if (!keyToDelete) return null;
 
+  const isNameMatch = confirmKeyName === keyToDelete.name;
+
+  // Step 2: Confirm by typing key name
+  if (confirmStep) {
+    return (
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent className="sm:max-w-md w-[calc(100%-2rem)] max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader className="flex-shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-destructive/10 rounded-lg flex-shrink-0">
+                <Trash2 className="h-6 w-6 text-destructive" />
+              </div>
+              <div className="min-w-0 overflow-hidden">
+                <DialogTitle>Confirm Deletion</DialogTitle>
+                <DialogDescription>
+                  Type the key name to confirm deletion.
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="space-y-4 mt-4 overflow-y-auto flex-1 min-h-0 p-1 -m-1">
+            <Alert variant="destructive">
+              <AlertOctagon className="h-4 w-4" />
+              <AlertDescription>
+                You are about to permanently delete <strong className="mx-1">{keyToDelete.name}</strong>.
+                This will revoke your access to any servers using this key.
+              </AlertDescription>
+            </Alert>
+
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="confirmDeleteName">
+                Type <code className="bg-muted px-1.5 py-0.5 rounded text-sm">{keyToDelete.name}</code> to confirm:
+              </Label>
+              <Input
+                id="confirmDeleteName"
+                value={confirmKeyName}
+                onChange={(e) => setConfirmKeyName(e.target.value)}
+                placeholder={keyToDelete.name}
+                className={isNameMatch ? 'border-green-500 focus-visible:ring-green-500' : ''}
+                autoFocus
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-2 pt-2">
+            <Button variant="outline" onClick={handleBack} className="flex-1 h-9">
+              Back
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={isDeleting || !isNameMatch}
+              className="flex-1 h-9"
+            >
+              {isDeleting ? 'Deleting...' : 'Confirm Delete'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // Step 1: Initial warning
   return (
     <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-md w-[calc(100%-2rem)] max-h-[85vh] overflow-hidden flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-destructive/10 rounded-lg">
-              <Trash2 className="h-5 w-5 text-destructive" />
+            <div className="p-2 bg-destructive/10 rounded-lg flex-shrink-0">
+              <Trash2 className="h-6 w-6 text-destructive" />
             </div>
-            <div>
+            <div className="min-w-0 overflow-hidden">
               <DialogTitle>Delete SSH Key?</DialogTitle>
               <DialogDescription>
                 This action cannot be undone.
@@ -55,7 +144,7 @@ export function DeleteKeyDialog() {
           </div>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="space-y-4 mt-4 overflow-y-auto flex-1 min-h-0 p-1 -m-1">
           <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
@@ -64,13 +153,7 @@ export function DeleteKeyDialog() {
             </AlertDescription>
           </Alert>
 
-          {error && (
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-
-          <div className="p-3 bg-muted rounded-lg">
+          <div className="p-3 bg-muted/50 rounded-lg">
             <p className="text-sm font-medium">{keyToDelete.name}</p>
             <p className="text-xs text-muted-foreground">
               {keyToDelete.algorithm.toUpperCase()} • {keyToDelete.publicKeyPath}
@@ -78,18 +161,18 @@ export function DeleteKeyDialog() {
           </div>
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-0">
-          <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
+        <div className="flex gap-2 pt-2">
+          <Button variant="outline" onClick={() => setShowDeleteDialog(false)} className="flex-1 h-9">
             Cancel
           </Button>
           <Button
             variant="destructive"
-            onClick={handleDelete}
-            disabled={isDeleting}
+            onClick={handleProceedToConfirm}
+            className="flex-1 h-9"
           >
-            {isDeleting ? 'Deleting...' : 'Delete Key'}
+            Delete Key
           </Button>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );
