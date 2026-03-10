@@ -1,4 +1,4 @@
-import { Copy, Check, Eye, EyeOff, Key, Lock, Calendar, FileText, Pencil, Trash2 } from 'lucide-react';
+import { Copy, Check, Eye, EyeOff, KeyRound, Lock, Calendar, FileText, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -48,8 +48,8 @@ export function KeyDetailView() {
   if (!selectedKey) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <div className="text-center">
-          <Key className="h-16 w-16 mx-auto text-muted-foreground/30 mb-4" />
+        <div className="text-center flex flex-col items-center">
+          <KeyRound className="h-16 w-16 text-muted-foreground/30 mb-4" />
           <h3 className="text-lg font-medium text-muted-foreground">No Key Selected</h3>
           <p className="text-sm text-muted-foreground/70 mt-1">
             Select a key from the sidebar to view its details
@@ -126,7 +126,7 @@ export function KeyDetailView() {
           <Card>
             <CardContent className="py-3">
               <div className="flex items-center gap-2 text-muted-foreground mb-0.5">
-                <Key className="h-3.5 w-3.5" />
+                <KeyRound className="h-3.5 w-3.5" />
                 <span className="text-xs uppercase tracking-wider">Comment</span>
               </div>
               <p className="font-medium text-sm truncate" title={selectedKey.comment || 'None'}>
