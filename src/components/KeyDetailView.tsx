@@ -65,7 +65,7 @@ export function KeyDetailView() {
   };
 
   return (
-    <div className="flex-1 overflow-auto p-4">
+    <div className="flex-1 overflow-auto p-6">
       <div className="max-w-3xl mx-auto space-y-4">
         {/* Key Header */}
         <div className="flex items-start justify-between">
