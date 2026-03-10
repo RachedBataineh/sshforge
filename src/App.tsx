@@ -6,25 +6,12 @@ import { DeleteKeyDialog, RenameKeyDialog } from '@/components/KeyDialogs';
 import { SuccessDialog } from '@/components/SuccessDialog';
 import { useAppStore } from '@/store/useAppStore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, KeyRound } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { KeyRound } from 'lucide-react';
 
 function CreateKeyView() {
-  const { setCurrentView } = useAppStore();
-
   return (
     <div className="flex-1 overflow-auto">
       <div className="max-w-2xl mx-auto p-4">
-        {/* Back Button */}
-        <Button
-          variant="ghost"
-          className="mb-4 -ml-2"
-          onClick={() => setCurrentView('list')}
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Keys
-        </Button>
-
         {/* Main Card */}
         <Card className="glass">
           <CardHeader className="space-y-1 pb-4">
