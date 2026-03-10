@@ -59,7 +59,7 @@ Whether you're a developer, DevOps engineer, or system administrator, SSHForge m
 
 ### Download
 
-Download the latest version for your platform from the [Releases](https://github.com/yourusername/sshforge/releases) page.
+Download the latest version for your platform from the [Releases](https://github.com/RachedBataineh/sshforge/releases) page.
 
 | Platform | Download |
 |----------|----------|
@@ -85,7 +85,7 @@ Download the latest version for your platform from the [Releases](https://github
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/sshforge.git
+git clone https://github.com/RachedBataineh/sshforge.git
 cd sshforge
 
 # Install dependencies
@@ -182,6 +182,7 @@ SSHForge takes security seriously:
 
 ## Roadmap
 
+- [ ] SSH Agent integration
 - [ ] SSH key import functionality
 - [ ] Key backup and restore
 - [ ] Multi-profile support
