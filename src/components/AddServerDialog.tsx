@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Terminal, Plus } from 'lucide-react';
+import { Terminal, Plus, Key } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,7 +7,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -76,106 +75,102 @@ export function AddServerDialog({ open, onOpenChange, identityFilePath, keyName 
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="alias">
-              Host Alias <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="alias"
-              placeholder="my-server"
-              value={alias}
-              onChange={(e) => setAlias(e.target.value)}
-              disabled={isSubmitting}
-            />
-            <p className="text-xs text-muted-foreground">
-              A short name to identify this server (e.g., "my-server", "prod-1")
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="hostName">
-              Host Name <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="hostName"
-              placeholder="192.168.1.100 or server.example.com"
-              value={hostName}
-              onChange={(e) => setHostName(e.target.value)}
-              disabled={isSubmitting}
-            />
-            <p className="text-xs text-muted-foreground">
-              The IP address or domain name of the server
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="user">
-              User <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="user"
-              placeholder="username"
-              value={user}
-              onChange={(e) => setUser(e.target.value)}
-              disabled={isSubmitting}
-            />
-            <p className="text-xs text-muted-foreground">
-              The SSH username for authentication
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="port">Port</Label>
-            <Input
-              id="port"
-              type="number"
-              placeholder="22"
-              value={port}
-              onChange={(e) => setPort(e.target.value)}
-              disabled={isSubmitting}
-            />
-            <p className="text-xs text-muted-foreground">
-              SSH port (default: 22)
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Identity File</Label>
-            <div className="text-sm font-mono bg-muted px-3 py-2 rounded-md truncate">
-              {identityFilePath}
+        <form onSubmit={handleSubmit} className="space-y-3">
+          {/* Row 1: Alias & Host Name */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="alias" className="text-xs">
+                Alias <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="alias"
+                placeholder="my-server"
+                value={alias}
+                onChange={(e) => setAlias(e.target.value)}
+                disabled={isSubmitting}
+                className="h-8"
+              />
             </div>
-            <p className="text-xs text-muted-foreground">
-              This key will be used for authentication
-            </p>
+            <div className="space-y-1.5">
+              <Label htmlFor="hostName" className="text-xs">
+                Host Name <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="hostName"
+                placeholder="192.168.1.100"
+                value={hostName}
+                onChange={(e) => setHostName(e.target.value)}
+                disabled={isSubmitting}
+                className="h-8"
+              />
+            </div>
+          </div>
+
+          {/* Row 2: User & Port */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="user" className="text-xs">
+                User <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="user"
+                placeholder="username"
+                value={user}
+                onChange={(e) => setUser(e.target.value)}
+                disabled={isSubmitting}
+                className="h-8"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="port" className="text-xs">Port</Label>
+              <Input
+                id="port"
+                type="number"
+                placeholder="22"
+                value={port}
+                onChange={(e) => setPort(e.target.value)}
+                disabled={isSubmitting}
+                className="h-8"
+              />
+            </div>
+          </div>
+
+          {/* Row 3: Identity File (full width, compact) */}
+          <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-md">
+            <Key className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <span className="text-xs text-muted-foreground truncate flex-1">
+              {identityFilePath}
+            </span>
           </div>
 
           {error && (
-            <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
+            <div className="text-xs text-destructive bg-destructive/10 p-2 rounded-md">
               {error}
             </div>
           )}
 
-          <DialogFooter>
+          {/* Buttons */}
+          <div className="flex gap-2 pt-1">
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={isSubmitting}
+              className="flex-1 h-8"
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button type="submit" disabled={isSubmitting} className="flex-1 h-8">
               {isSubmitting ? (
                 'Adding...'
               ) : (
                 <>
-                  <Plus className="h-4 w-4 mr-1" />
+                  <Plus className="h-3.5 w-3.5 mr-1" />
                   Add Connection
                 </>
               )}
             </Button>
-          </DialogFooter>
+          </div>
         </form>
       </DialogContent>
     </Dialog>
