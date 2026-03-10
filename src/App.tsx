@@ -7,6 +7,7 @@ import { SuccessDialog } from '@/components/SuccessDialog';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useAppStore } from '@/store/useAppStore';
 import { KeyRound } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 function CreateKeyView() {
   return (
@@ -41,12 +42,22 @@ function CreateKeyView() {
 
 function App() {
   const { currentView } = useAppStore();
+  const [platform, setPlatform] = useState<string>('darwin');
+
+  useEffect(() => {
+    window.electronAPI.getPlatform().then(setPlatform);
+  }, []);
+
+  const isMac = platform === 'darwin';
 
   return (
     <TooltipProvider>
       <div className="flex flex-col h-screen bg-background">
-        {/* macOS Title Bar - Drag region with theme toggle */}
-        <div className="h-12 flex-shrink-0 bg-background border-b flex items-center justify-end px-3" style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}>
+        {/* Title Bar - Drag region with theme toggle */}
+        <div
+          className={`flex-shrink-0 bg-background border-b flex items-center justify-end px-3 ${isMac ? 'h-12' : 'h-10'}`}
+          style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
+        >
           <div style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
             <ThemeToggle />
           </div>
