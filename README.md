@@ -25,7 +25,6 @@ SSHForge is a cross-platform desktop application that simplifies SSH key managem
 - **Generate SSH Keys** - Create RSA, ED25519, ECDSA, and DSA keys with a beautiful graphical interface
 - **Manage Your Keys** - View all your keys in one place, copy public keys, and organize them effortlessly
 - **Connect to Servers** - Save SSH server connections and associate keys with specific hosts
-- **Deploy with Ease** - Add keys to your SSH agent with a single click
 
 Whether you're a developer, DevOps engineer, or system administrator, SSHForge makes SSH key management painless.
 
@@ -49,11 +48,6 @@ Whether you're a developer, DevOps engineer, or system administrator, SSHForge m
 - Associate specific keys with servers
 - Quick access to connection details
 - Test connections before saving
-
-### SSH Agent Integration
-- Add keys to SSH agent instantly
-- View which keys are currently loaded
-- Remove keys from agent when needed
 
 ### Beautiful User Interface
 - Modern, clean design
