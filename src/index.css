@@ -166,7 +166,7 @@
 
 /* Algorithm card styling */
 .algorithm-card {
-  @apply relative flex flex-col p-4 rounded-lg border-2 cursor-pointer transition-all duration-200;
+  @apply relative flex flex-col p-4 rounded-lg border cursor-pointer transition-all duration-200;
 }
 
 .algorithm-card:hover {
@@ -175,6 +175,7 @@
 
 .algorithm-card.selected {
   @apply border-primary bg-primary/5;
+  box-shadow: inset 0 0 0 1px hsl(var(--primary));
 }
 
 /* Button loading state */
