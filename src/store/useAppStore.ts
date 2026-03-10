@@ -1,6 +1,9 @@
 import { create } from 'zustand';
 import type { SSHKeyInfo, AppView, SSHServerConnection, SSHConfigEntry } from '@/types';
 
+/** Normalize a file path for cross-platform comparison (handle \ vs /, case on Windows). */
+const normalizePath = (p: string) => p.replace(/\\/g, '/').toLowerCase();
+
 interface AppStore {
   // View state
   currentView: AppView;
@@ -283,7 +286,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   forgetServersForKey: async (keyPath: string) => {
     const { serverConnections } = get();
     const keyConnections = serverConnections.filter(
-      (conn) => conn.identityFilePath === keyPath
+      (conn) => normalizePath(conn.identityFilePath) === normalizePath(keyPath)
     );
 
     let allSuccess = true;

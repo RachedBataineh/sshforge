@@ -55,7 +55,7 @@ function App() {
       <div className="flex flex-col h-screen bg-background">
         {/* Title Bar - Drag region with theme toggle */}
         <div
-          className={`flex-shrink-0 bg-background border-b flex items-center justify-end px-3 ${isMac ? 'h-12' : 'h-10'}`}
+          className={`flex-shrink-0 bg-background border-b flex items-center px-3 ${isMac ? 'h-12 justify-end' : 'h-10 justify-start'}`}
           style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
         >
           <div style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>

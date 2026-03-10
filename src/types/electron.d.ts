@@ -40,6 +40,9 @@ declare global {
       removeSSHConfigEntry: (alias: string) => Promise<{ success: boolean; error?: string }>;
       openTerminal: (options: { host: string; user?: string; identityFile?: string; port?: number; alias?: string }) => Promise<{ success: boolean; error?: string }>;
       forgetServer: (hostname: string) => Promise<{ success: boolean; error?: string }>;
+
+      // Window appearance (Windows/Linux only — no-op on macOS)
+      setTitleBarOverlay: (colors: { color: string; symbolColor: string }) => Promise<void>;
     };
   }
 }

@@ -17,12 +17,22 @@ const applyTheme = (theme: Theme) => {
   const root = window.document.documentElement;
   root.classList.remove('light', 'dark');
 
+  let effectiveTheme: 'light' | 'dark';
   if (theme === 'system') {
-    const systemTheme = getSystemTheme();
-    root.classList.add(systemTheme);
+    effectiveTheme = getSystemTheme();
+    root.classList.add(effectiveTheme);
   } else {
+    effectiveTheme = theme;
     root.classList.add(theme);
   }
+
+  // Sync the native Windows titleBarOverlay button colors with the active theme.
+  // No-op on macOS (traffic lights are always native) and safe in dev/browser.
+  const isDark = effectiveTheme === 'dark';
+  window.electronAPI?.setTitleBarOverlay?.({
+    color: isDark ? '#0a0a0a' : '#ffffff',
+    symbolColor: isDark ? '#ffffff' : '#000000',
+  });
 };
 
 export const useThemeStore = create<ThemeStore>()(

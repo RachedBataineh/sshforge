@@ -88,6 +88,11 @@ const electronAPI = {
   forgetServer: (hostname) => {
     return ipcRenderer.invoke("ssh:forget-server", hostname);
   },
+
+  // Window appearance
+  setTitleBarOverlay: (colors) => {
+    return ipcRenderer.invoke("window:set-title-bar-overlay", colors);
+  },
 };
 
 contextBridge.exposeInMainWorld("electronAPI", electronAPI);

@@ -30,24 +30,43 @@ function getSSHConfigPath(): string {
 }
 
 /**
- * Expands ~ to home directory in paths
+ * Expands ~ to home directory in paths.
+ * Handles both Unix (~/) and Windows (~\) tilde prefixes.
  */
 function expandPath(filePath: string): string {
-  if (filePath.startsWith('~/')) {
-    return path.join(app.getPath('home'), filePath.slice(2));
+  const trimmed = filePath.trim();
+  // Match ~/ or ~\ at the start
+  if (trimmed.startsWith('~/') || trimmed.startsWith('~\\')) {
+    return path.join(app.getPath('home'), trimmed.slice(2));
+  }
+  return trimmed;
+}
+
+/**
+ * Converts absolute path to ~/... shorthand for SSH config.
+ * Always uses forward slash separator so the config is portable and
+ * round-trips correctly through expandPath on all platforms.
+ */
+function shortenPath(filePath: string): string {
+  const homeDir = app.getPath('home');
+  // Normalize both to forward slashes for comparison
+  const normalizedFile = filePath.replace(/\\/g, '/');
+  const normalizedHome = homeDir.replace(/\\/g, '/');
+  if (normalizedFile.toLowerCase().startsWith(normalizedHome.toLowerCase())) {
+    const relative = normalizedFile.slice(normalizedHome.length);
+    // Ensure exactly one leading slash
+    return '~' + (relative.startsWith('/') ? relative : '/' + relative);
   }
   return filePath;
 }
 
 /**
- * Converts absolute path to ~ shorthand for SSH config
+ * Normalizes a file path for reliable comparison across platforms.
+ * - Converts \ to /
+ * - Lowercases the whole string (Windows paths are case-insensitive)
  */
-function shortenPath(filePath: string): string {
-  const homeDir = app.getPath('home');
-  if (filePath.startsWith(homeDir)) {
-    return '~' + filePath.slice(homeDir.length);
-  }
-  return filePath;
+function normalizePath(filePath: string): string {
+  return filePath.replace(/\\/g, '/').toLowerCase();
 }
 
 /**
@@ -262,25 +281,26 @@ function escapeRegex(string: string): string {
 }
 
 /**
- * Opens Terminal.app with an SSH command using AppleScript
+ * Opens a terminal with an SSH command — cross-platform implementation.
+ *
+ * macOS  : AppleScript → Terminal.app
+ * Windows: Windows Terminal (wt) → PowerShell → Command Prompt (fallback chain)
+ * Linux  : x-terminal-emulator → gnome-terminal → xterm
  */
 function openTerminalWithSSH(options: { host: string; user?: string; identityFile?: string; port?: number; alias?: string }): Promise<{ success: boolean; error?: string }> {
   return new Promise((resolve) => {
     try {
       const { alias, host } = options;
 
-      // If we have an alias (from SSH config), just use "ssh alias"
-      // Otherwise fall back to full command with options
+      // Build the SSH command string
       let sshCmd: string;
       if (alias) {
-        // Use the alias - SSH will read the config automatically
         sshCmd = `ssh ${alias}`;
       } else {
-        // Fall back to full command (for manual connections without config)
         const { user = 'root', identityFile, port } = options;
         sshCmd = 'ssh';
         if (identityFile) {
-          sshCmd += ` -i ${shortenPath(identityFile)}`;
+          sshCmd += ` -i "${shortenPath(identityFile)}"`;
         }
         if (port && port !== 22) {
           sshCmd += ` -p ${port}`;
@@ -290,20 +310,104 @@ function openTerminalWithSSH(options: { host: string; user?: string; identityFil
 
       console.log('[SSH Config] Opening terminal with command:', sshCmd);
 
-      // AppleScript to open Terminal and run command
-      const script = `
-        tell application "Terminal"
-          activate
-          do script "${sshCmd.replace(/"/g, '\\"')}"
-        end tell
-      `;
+      const platform = process.platform;
 
-      spawn('osascript', ['-e', script], {
-        detached: true,
-        stdio: 'ignore',
-      }).unref();
+      if (platform === 'darwin') {
+        // ── macOS ─────────────────────────────────────────────────────────────
+        const escaped = sshCmd.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+        const script = `tell application "Terminal"
+activate
+do script "${escaped}"
+end tell`;
+        spawn('osascript', ['-e', script], { detached: true, stdio: 'ignore' }).unref();
+        resolve({ success: true });
 
-      resolve({ success: true });
+      } else if (platform === 'win32') {
+        // ── Windows ───────────────────────────────────────────────────────────
+        // Try Windows Terminal first, then CMD with PowerShell.
+        // Each opens a NEW visible window and keeps it open for user input.
+
+        let resolved = false;
+
+        const tryCMD = () => {
+          // CMD opens a new window with 'start' and keeps it open with '/k'
+          const cmdProcess = spawn(
+            'cmd.exe',
+            ['/c', 'start', 'cmd.exe', '/k', sshCmd],
+            { detached: true, stdio: 'ignore', shell: false, windowsHide: false }
+          );
+          cmdProcess.on('error', (err) => {
+            if (!resolved) {
+              resolved = true;
+              resolve({ success: false, error: `Could not open terminal: ${err.message}` });
+            }
+          });
+          cmdProcess.unref();
+          if (!resolved) {
+            resolved = true;
+            resolve({ success: true });
+          }
+        };
+
+        const tryPowerShell = () => {
+          // PowerShell in a new window using start command
+          const psProcess = spawn(
+            'cmd.exe',
+            ['/c', 'start', 'powershell.exe', '-NoExit', '-Command', sshCmd],
+            { detached: true, stdio: 'ignore', shell: false, windowsHide: false }
+          );
+          psProcess.on('error', tryCMD);
+          psProcess.unref();
+          if (!resolved) {
+            resolved = true;
+            resolve({ success: true });
+          }
+        };
+
+        // Try Windows Terminal first
+        const wtProcess = spawn(
+          'wt.exe',
+          ['-p', 'PowerShell', 'powershell.exe', '-NoExit', '-Command', sshCmd],
+          { detached: true, stdio: 'ignore', shell: false, windowsHide: false }
+        );
+        wtProcess.on('error', tryPowerShell);
+        wtProcess.unref();
+        if (!resolved) {
+          resolved = true;
+          resolve({ success: true });
+        }
+
+      } else {
+        // ── Linux ─────────────────────────────────────────────────────────────
+        const linuxTerminals = [
+          { cmd: 'x-terminal-emulator', args: ['-e', `bash -c "${sshCmd}; exec bash"`] },
+          { cmd: 'gnome-terminal',      args: ['--', 'bash', '-c', `${sshCmd}; exec bash`] },
+          { cmd: 'xfce4-terminal',      args: ['--hold', '-e', sshCmd] },
+          { cmd: 'konsole',             args: ['--hold', '-e', sshCmd] },
+          { cmd: 'xterm',               args: ['-hold', '-e', sshCmd] },
+        ];
+
+        let resolved = false;
+        const tryNext = (index: number) => {
+          if (index >= linuxTerminals.length) {
+            if (!resolved) {
+              resolved = true;
+              resolve({ success: false, error: 'No supported terminal emulator found. Install xterm or gnome-terminal.' });
+            }
+            return;
+          }
+          const { cmd, args } = linuxTerminals[index];
+          const proc = spawn(cmd, args, { detached: true, stdio: 'ignore' });
+          proc.on('error', () => tryNext(index + 1));
+          proc.unref();
+          if (!resolved) {
+            resolved = true;
+            resolve({ success: true });
+          }
+        };
+
+        tryNext(0);
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       resolve({ success: false, error: message });
@@ -316,33 +420,25 @@ function openTerminalWithSSH(options: { host: string; user?: string; identityFil
  */
 function forgetServer(hostname: string): Promise<{ success: boolean; error?: string }> {
   return new Promise((resolve) => {
-    try {
-      // Use ssh-keygen -R to remove from known_hosts
-      const process = spawn('ssh-keygen', ['-R', hostname], {
-        stdio: 'pipe',
-      });
+    // ssh-keygen -R removes the host from known_hosts.
+    // Works on macOS, Linux and Windows 10+ (built-in OpenSSH).
+    const proc = spawn('ssh-keygen', ['-R', hostname], { stdio: 'pipe' });
 
-      let stderr = '';
-      process.stderr?.on('data', (data) => {
-        stderr += data.toString();
-      });
+    proc.stderr?.on('data', () => { /* consume stderr */ });
 
-      process.on('close', (code) => {
-        if (code === 0) {
-          resolve({ success: true });
-        } else {
-          // ssh-keygen -R returns 0 even if host wasn't found, but let's handle errors
-          resolve({ success: true }); // Still consider it success
-        }
-      });
+    proc.on('close', () => {
+      // ssh-keygen -R exits 0 whether or not the host was present — always succeed.
+      resolve({ success: true });
+    });
 
-      process.on('error', (err) => {
-        resolve({ success: false, error: err.message });
+    proc.on('error', (err) => {
+      console.warn('[SSH Config] ssh-keygen not available:', err.message);
+      // Non-fatal: app still works, just can't clear known_hosts automatically.
+      resolve({
+        success: false,
+        error: 'ssh-keygen not found. On Windows, install OpenSSH Client via Settings → Apps → Optional Features.',
       });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      resolve({ success: false, error: message });
-    }
+    });
   });
 }
 

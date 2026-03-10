@@ -49,9 +49,12 @@ export function ServerConnectionsSection({ identityFilePath, keyName }: ServerCo
     loadServerConnections();
   }, [loadServerConnections]);
 
+  // Normalize paths for cross-platform comparison (\ vs /, case on Windows)
+  const normalizePath = (p: string) => p.replace(/\\/g, '/').toLowerCase();
+
   // Filter connections for this specific key
   const keyConnections = serverConnections.filter(
-    (conn) => conn.identityFilePath === identityFilePath
+    (conn) => normalizePath(conn.identityFilePath) === normalizePath(identityFilePath)
   );
 
   const handleConnect = async (connection: SSHServerConnection) => {

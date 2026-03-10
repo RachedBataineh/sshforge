@@ -1,4 +1,4 @@
-import { app, BrowserWindow, shell, nativeTheme, Menu, MenuItem } from 'electron';
+import { app, BrowserWindow, shell, nativeTheme, Menu, MenuItem, ipcMain } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { registerKeyGeneratorHandlers } from './ipc/keyGenerator';
@@ -17,10 +17,10 @@ let mainWindow: BrowserWindow | null = null;
 // Check if running in development
 const isDev = !app.isPackaged;
 
-// Create production menu (without DevTools)
-function createProductionMenu(): Menu {
-  const template: (MenuItem | MenuItem[])[] = [
-    // App menu (macOS)
+// Create production menu for macOS (without DevTools)
+function createMacProductionMenu(): Menu {
+  const template: Electron.MenuItemConstructorOptions[] = [
+    // App menu (macOS only)
     {
       label: app.name,
       submenu: [
@@ -34,11 +34,6 @@ function createProductionMenu(): Menu {
         { type: 'separator' as const },
         { role: 'quit' as const },
       ],
-    },
-    // File menu
-    {
-      label: 'File',
-      submenu: [{ role: 'close' as const }],
     },
     // Edit menu
     {
@@ -95,18 +90,32 @@ function createProductionMenu(): Menu {
     },
   ];
 
-  return Menu.buildFromTemplate(template as MenuItem[]);
+  return Menu.buildFromTemplate(template);
 }
 
 function createWindow(): void {
+  const isMac = process.platform === 'darwin';
+
   mainWindow = new BrowserWindow({
     width: 1000,
     height: 700,
     minWidth: 800,
     minHeight: 500,
     show: false,
-    titleBarStyle: 'hiddenInset',
-    trafficLightPosition: { x: 15, y: 15 },
+    // On macOS: hiddenInset keeps native traffic lights visible within the app chrome.
+    // On Windows/Linux: 'hidden' removes the native title bar overlay entirely,
+    // so only our custom React title bar renders (no double-bar stacking).
+    titleBarStyle: isMac ? 'hiddenInset' : 'hidden',
+    ...(isMac && { trafficLightPosition: { x: 15, y: 15 } }),
+    // On Windows/Linux: restore the native min/max/close buttons via overlay.
+    // height=40 matches our React custom bar (h-10). Colors blend with the app background.
+    ...(!isMac && {
+      titleBarOverlay: {
+        color: nativeTheme.shouldUseDarkColors ? '#0a0a0a' : '#ffffff',
+        symbolColor: nativeTheme.shouldUseDarkColors ? '#ffffff' : '#000000',
+        height: 40,
+      },
+    }),
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       nodeIntegration: false,
@@ -125,8 +134,15 @@ function createWindow(): void {
     mainWindow.webContents.openDevTools({ mode: 'detach' });
   } else {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
-    // Set custom menu without DevTools in production
-    Menu.setApplicationMenu(createProductionMenu());
+    // Set platform-appropriate menu in production
+    if (process.platform === 'darwin') {
+      Menu.setApplicationMenu(createMacProductionMenu());
+    } else {
+      // On Windows/Linux, hide the menu bar entirely — window controls
+      // (minimize/maximize/close) are handled natively by the OS frame
+      // and our custom React title bar only contains the theme toggle.
+      Menu.setApplicationMenu(null);
+    }
   }
 
   // Show window when ready
@@ -152,7 +168,31 @@ function registerHandlers(): void {
   registerKeyGeneratorHandlers();
   registerFileManagerHandlers();
   registerSSHConfigHandlers();
+
+  // Allow the renderer to push titleBarOverlay colors when the user switches theme.
+  // Only meaningful on Windows/Linux where titleBarOverlay is active.
+  ipcMain.handle(
+    'window:set-title-bar-overlay',
+    (_event, colors: { color: string; symbolColor: string }) => {
+      if (mainWindow && process.platform !== 'darwin') {
+        mainWindow.setTitleBarOverlay({ ...colors, height: 40 });
+      }
+    }
+  );
 }
+
+// Keep the overlay in sync when the OS itself switches between light/dark
+// (relevant when the user has chosen 'system' theme).
+nativeTheme.on('updated', () => {
+  if (mainWindow && process.platform !== 'darwin') {
+    const isDark = nativeTheme.shouldUseDarkColors;
+    mainWindow.setTitleBarOverlay({
+      color: isDark ? '#0a0a0a' : '#ffffff',
+      symbolColor: isDark ? '#ffffff' : '#000000',
+      height: 40,
+    });
+  }
+});
 
 // App lifecycle
 app.whenReady().then(() => {
