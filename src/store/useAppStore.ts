@@ -41,7 +41,6 @@ interface AppStore {
   selectKey: (key: SSHKeyInfo) => Promise<void>;
   deleteSelectedKey: () => Promise<boolean>;
   renameSelectedKey: (newName: string) => Promise<boolean>;
-  refreshKeys: () => Promise<void>;
 }
 
 export const useAppStore = create<AppStore>((set, get) => ({
