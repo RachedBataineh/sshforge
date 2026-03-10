@@ -203,6 +203,16 @@ export function OverwriteKeyDialog() {
   } = useKeyStore();
 
   const [isOverwriting, setIsOverwriting] = useState(false);
+  const [confirmStep, setConfirmStep] = useState(false);
+  const [confirmKeyName, setConfirmKeyName] = useState('');
+
+  // Reset state when dialog opens
+  useEffect(() => {
+    if (showOverwriteDialog) {
+      setConfirmStep(false);
+      setConfirmKeyName('');
+    }
+  }, [showOverwriteDialog]);
 
   const handleOverwrite = async () => {
     if (!pendingKeyRef.current) return;
@@ -254,6 +264,79 @@ export function OverwriteKeyDialog() {
     pendingKeyRef.current = null;
   };
 
+  const handleBack = () => {
+    setConfirmStep(false);
+    setConfirmKeyName('');
+  };
+
+  const handleProceedToConfirm = () => {
+    setConfirmStep(true);
+  };
+
+  const isNameMatch = confirmKeyName === keyName;
+
+  // Step 2: Confirm by typing key name
+  if (confirmStep) {
+    return (
+      <Dialog open={showOverwriteDialog} onOpenChange={setShowOverwriteDialog}>
+        <DialogContent className="sm:max-w-md w-[calc(100%-2rem)] max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader className="flex-shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-destructive/10 rounded-lg flex-shrink-0">
+                <Trash2 className="h-6 w-6 text-destructive" />
+              </div>
+              <div className="min-w-0 overflow-hidden">
+                <DialogTitle>Confirm Overwrite</DialogTitle>
+                <DialogDescription>
+                  Type the key name to confirm deletion.
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="space-y-4 mt-4 overflow-y-auto flex-1 min-h-0 p-1 -m-1">
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                You are about to permanently delete <strong className="mx-1">{keyName}</strong>.
+                This will revoke your access to any servers using this key.
+              </AlertDescription>
+            </Alert>
+
+            <div className="space-y-2">
+              <Label htmlFor="confirmKeyName">
+                Type <code className="bg-muted px-1.5 py-0.5 rounded text-sm">{keyName}</code> to confirm:
+              </Label>
+              <Input
+                id="confirmKeyName"
+                value={confirmKeyName}
+                onChange={(e) => setConfirmKeyName(e.target.value)}
+                placeholder={keyName}
+                className={isNameMatch ? 'border-green-500 focus-visible:ring-green-500' : ''}
+                autoFocus
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-2 pt-2">
+            <Button variant="outline" onClick={handleBack} className="flex-1 h-9">
+              Back
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleOverwrite}
+              disabled={isOverwriting || !isNameMatch}
+              className="flex-1 h-9"
+            >
+              {isOverwriting ? 'Overwriting...' : 'Confirm Overwrite'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // Step 1: Initial warning
   return (
     <Dialog open={showOverwriteDialog} onOpenChange={setShowOverwriteDialog}>
       <DialogContent className="sm:max-w-md w-[calc(100%-2rem)] max-h-[85vh] overflow-hidden flex flex-col">
@@ -271,7 +354,7 @@ export function OverwriteKeyDialog() {
           </div>
         </DialogHeader>
 
-        <div className="space-y-4 mt-4 overflow-y-auto flex-1 min-h-0">
+        <div className="space-y-4 mt-4 overflow-y-auto flex-1 min-h-0 p-1 -m-1">
           <Alert className="border-amber-500/50 bg-amber-500/10">
             <AlertTriangle className="h-4 w-4 text-amber-500" />
             <AlertDescription className="text-amber-700 dark:text-amber-400">
@@ -303,11 +386,10 @@ export function OverwriteKeyDialog() {
           </Button>
           <Button
             variant="destructive"
-            onClick={handleOverwrite}
-            disabled={isOverwriting}
+            onClick={handleProceedToConfirm}
             className="flex-1 h-9"
           >
-            {isOverwriting ? 'Overwriting...' : 'Overwrite Key'}
+            Overwrite Key
           </Button>
         </div>
       </DialogContent>
