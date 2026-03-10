@@ -53,6 +53,7 @@ interface AppStore {
   removeServerConnection: (alias: string) => Promise<boolean>;
   connectToServer: (connection: SSHServerConnection) => Promise<boolean>;
   forgetServer: (hostname: string) => Promise<boolean>;
+  forgetServersForKey: (keyPath: string) => Promise<boolean>;
 }
 
 export const useAppStore = create<AppStore>((set, get) => ({
@@ -276,6 +277,23 @@ export const useAppStore = create<AppStore>((set, get) => ({
       set({ error: message });
       return false;
     }
+  },
+
+  // Forget all servers that use a specific key
+  forgetServersForKey: async (keyPath: string) => {
+    const { serverConnections } = get();
+    const keyConnections = serverConnections.filter(
+      (conn) => conn.identityFilePath === keyPath
+    );
+
+    let allSuccess = true;
+    for (const connection of keyConnections) {
+      const success = await get().forgetServer(connection.hostName);
+      if (!success) {
+        allSuccess = false;
+      }
+    }
+    return allSuccess;
   },
 
 }));

@@ -1,4 +1,4 @@
-import { AlertTriangle, Pencil, Trash2, AlertOctagon } from 'lucide-react';
+import { AlertTriangle, Pencil, Trash2, AlertOctagon, ExternalLink } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useAppStore } from '@/store/useAppStore';
 import { useKeyStore } from '@/store/useKeyStore';
 import { useState, useEffect } from 'react';
@@ -21,23 +22,38 @@ export function DeleteKeyDialog() {
     setShowDeleteDialog,
     keyToDelete,
     deleteSelectedKey,
+    forgetServersForKey,
+    serverConnections,
     error,
   } = useAppStore();
 
   const [isDeleting, setIsDeleting] = useState(false);
   const [confirmStep, setConfirmStep] = useState(false);
   const [confirmKeyName, setConfirmKeyName] = useState('');
+  const [forgetServers, setForgetServers] = useState(false);
+
+  // Get servers that use this key
+  const keyServers = keyToDelete
+    ? serverConnections.filter(conn => conn.identityFilePath === keyToDelete.privateKeyPath)
+    : [];
 
   // Reset state when dialog opens
   useEffect(() => {
     if (showDeleteDialog) {
       setConfirmStep(false);
       setConfirmKeyName('');
+      setForgetServers(false);
     }
   }, [showDeleteDialog]);
 
   const handleDelete = async () => {
     setIsDeleting(true);
+
+    // If checkbox is checked, forget all servers first
+    if (forgetServers && keyToDelete) {
+      await forgetServersForKey(keyToDelete.privateKeyPath);
+    }
+
     const success = await deleteSelectedKey();
     setIsDeleting(false);
     if (success) {
@@ -105,6 +121,30 @@ export function DeleteKeyDialog() {
                 autoFocus
               />
             </div>
+
+            {/* Forget servers checkbox */}
+            {keyServers.length > 0 && (
+              <div className="flex items-start space-x-3 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                <Checkbox
+                  id="forgetServers"
+                  checked={forgetServers}
+                  onCheckedChange={(checked) => setForgetServers(checked as boolean)}
+                />
+                <div className="space-y-1 leading-none">
+                  <Label
+                    htmlFor="forgetServers"
+                    className="text-sm font-medium cursor-pointer flex items-center gap-1.5"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5 text-amber-600" />
+                    Also forget servers from known_hosts
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Removes {keyServers.length} server{keyServers.length > 1 ? 's' : ''} ({keyServers.map(s => s.alias).join(', ')}) from known_hosts.
+                    Fixes "REMOTE HOST IDENTIFICATION HAS CHANGED" errors when you reconnect.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex gap-2 pt-2">
@@ -158,6 +198,17 @@ export function DeleteKeyDialog() {
               {keyToDelete.algorithm.toUpperCase()} • {keyToDelete.publicKeyPath}
             </p>
           </div>
+
+          {/* Show warning if servers use this key */}
+          {keyServers.length > 0 && (
+            <Alert className="border-amber-500/50 bg-amber-500/10">
+              <AlertTriangle className="h-4 w-4 text-amber-500" />
+              <AlertDescription className="text-amber-700 dark:text-amber-400">
+                <strong>{keyServers.length}</strong> server connection{keyServers.length > 1 ? 's' : ''} use this key ({keyServers.map(s => s.alias).join(', ')}).
+                You'll have the option to remove them from known_hosts to avoid host key errors.
+              </AlertDescription>
+            </Alert>
+          )}
         </div>
 
         <div className="flex gap-2 pt-2">
