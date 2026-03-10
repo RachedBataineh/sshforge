@@ -2,7 +2,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { Sidebar } from '@/components/Sidebar';
 import { KeyDetailView } from '@/components/KeyDetailView';
 import { KeyGeneratorForm } from '@/components/KeyGeneratorForm';
-import { DeleteKeyDialog, RenameKeyDialog } from '@/components/KeyDialogs';
+import { DeleteKeyDialog, RenameKeyDialog, OverwriteKeyDialog } from '@/components/KeyDialogs';
 import { SuccessDialog } from '@/components/SuccessDialog';
 import { useAppStore } from '@/store/useAppStore';
 import { KeyRound } from 'lucide-react';
@@ -60,6 +60,7 @@ function App() {
         <SuccessDialog />
         <DeleteKeyDialog />
         <RenameKeyDialog />
+        <OverwriteKeyDialog />
       </div>
     </TooltipProvider>
   );

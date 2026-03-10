@@ -11,6 +11,17 @@ import { SuccessDialog } from './SuccessDialog';
 import { useKeyStore } from '@/store/useKeyStore';
 import { validateKeyName, validateEmail } from '@/lib/utils';
 
+// Module-level ref to store pending key data (not in store, so KeyPreview won't show it)
+export const pendingKeyRef = {
+  current: null as {
+    privateKey: string;
+    publicKey: string;
+    fingerprint: string;
+    algorithm: string;
+    keyName: string;
+  } | null,
+};
+
 export function KeyGeneratorForm() {
   const {
     algorithm,
@@ -22,6 +33,7 @@ export function KeyGeneratorForm() {
     generatedKey,
     isGenerating,
     error,
+    showOverwriteDialog,
     setKeyName,
     setEmail,
     setGeneratedKey,
@@ -88,8 +100,6 @@ export function KeyGeneratorForm() {
         return;
       }
 
-      setGeneratedKey(result.key);
-
       // Save the key to default SSH directory
       if (!defaultPath) {
         setError('Unable to determine default SSH directory');
@@ -105,6 +115,14 @@ export function KeyGeneratorForm() {
 
       if (!saveResult.success) {
         if (saveResult.error === 'FILES_EXIST') {
+          // Store pending key in ref (NOT in store) so KeyPreview won't show it
+          pendingKeyRef.current = {
+            privateKey: result.key.privateKey,
+            publicKey: result.key.publicKey,
+            fingerprint: result.key.fingerprint,
+            algorithm,
+            keyName,
+          };
           setShowOverwriteDialog(true);
           setPrivateKeyPath(saveResult.privateKeyPath);
           setPublicKeyPath(saveResult.publicKeyPath);
@@ -114,6 +132,8 @@ export function KeyGeneratorForm() {
         return;
       }
 
+      // Only set generated key and show preview after successful save
+      setGeneratedKey(result.key);
       setPrivateKeyPath(saveResult.privateKeyPath);
       setPublicKeyPath(saveResult.publicKeyPath);
       setShowSuccess(true);
@@ -185,7 +205,7 @@ export function KeyGeneratorForm() {
 
       <PassphraseInput />
 
-      {generatedKey && <KeyPreview />}
+      {generatedKey && !showOverwriteDialog && <KeyPreview />}
 
       <Button
         onClick={handleGenerate}

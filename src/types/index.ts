@@ -20,6 +20,7 @@ export interface SaveOptions {
   publicKey: string;
   keyName: string;
   savePath: string;
+  overwrite?: boolean;
 }
 
 export interface AppPreferences {

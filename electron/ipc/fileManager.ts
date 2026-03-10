@@ -236,8 +236,8 @@ function renameKeyPair(oldPrivateKeyPath: string, newName: string): { success: b
 /**
  * Saves key pair to disk
  */
-async function saveKeyPair(options: SaveOptions): Promise<FileSaveResult> {
-  const { privateKey, publicKey, keyName, savePath } = options;
+async function saveKeyPair(options: SaveOptions & { overwrite?: boolean }): Promise<FileSaveResult> {
+  const { privateKey, publicKey, keyName, savePath, overwrite } = options;
 
   try {
     // Ensure directory exists
@@ -246,8 +246,8 @@ async function saveKeyPair(options: SaveOptions): Promise<FileSaveResult> {
     const privateKeyPath = path.join(savePath, keyName);
     const publicKeyPath = path.join(savePath, `${keyName}.pub`);
 
-    // Check if files already exist
-    if (fileExists(privateKeyPath) || fileExists(publicKeyPath)) {
+    // Check if files already exist (unless overwrite is true)
+    if (!overwrite && (fileExists(privateKeyPath) || fileExists(publicKeyPath))) {
       return {
         success: false,
         privateKeyPath,

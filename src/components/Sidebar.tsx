@@ -62,7 +62,7 @@ export function Sidebar() {
   return (
     <div className="w-72 border-r bg-muted/30 flex flex-col h-full">
       {/* Header */}
-      <div className="p-4 space-y-3">
+      <div className="p-3 space-y-3">
         <div className="flex items-center gap-2">
           <div className="p-2 bg-primary/10 rounded-lg">
             <Key className="h-5 w-5 text-primary" />
@@ -88,7 +88,7 @@ export function Sidebar() {
       <Separator />
 
       {/* Keys List Header */}
-      <div className="px-4 py-2 flex items-center justify-between">
+      <div className="px-3 py-2 flex items-center justify-between">
         <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
           Your Keys ({keys.length})
         </span>
@@ -105,9 +105,9 @@ export function Sidebar() {
 
       {/* Keys List */}
       <ScrollArea className="flex-1">
-        <div className="p-2">
+        <div className="p-3">
           {keys.length === 0 ? (
-            <div className="text-center py-8 px-4">
+            <div className="text-center py-8">
               <FolderOpen className="h-10 w-10 mx-auto text-muted-foreground/50 mb-2" />
               <p className="text-sm text-muted-foreground">No SSH keys found</p>
               <p className="text-xs text-muted-foreground/70 mt-1">
