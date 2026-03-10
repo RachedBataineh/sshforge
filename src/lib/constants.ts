@@ -46,8 +46,6 @@ export const ALGORITHM_INFO: Record<KeyAlgorithm, {
   },
 };
 
-export const DEFAULT_KEY_NAME = 'id_ed25519';
-
 export const IPC_CHANNELS = {
   // Renderer -> Main
   GENERATE_KEY: 'key:generate',

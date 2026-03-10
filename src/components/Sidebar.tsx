@@ -11,27 +11,8 @@ import { Separator } from '@/components/ui/separator';
 import { useAppStore } from '@/store/useAppStore';
 import { cn } from '@/lib/utils';
 
-const algorithmIcons: Record<string, React.ReactNode> = {
-  'ed25519': <KeyRound className="h-4 w-4" />,
-  'rsa': <KeyRound className="h-4 w-4" />,
-  'ecdsa-p256': <KeyRound className="h-4 w-4" />,
-  'ecdsa-p384': <KeyRound className="h-4 w-4" />,
-  'ecdsa-p521': <KeyRound className="h-4 w-4" />,
-  'sk-ed25519': <KeyRound className="h-4 w-4" />,
-  'sk-ecdsa': <KeyRound className="h-4 w-4" />,
-  'unknown': <KeyRound className="h-4 w-4" />,
-};
-
-const algorithmColors: Record<string, string> = {
-  'ed25519': 'text-green-500 bg-green-500/10',
-  'rsa': 'text-green-500 bg-green-500/10',
-  'ecdsa-p256': 'text-green-500 bg-green-500/10',
-  'ecdsa-p384': 'text-green-500 bg-green-500/10',
-  'ecdsa-p521': 'text-green-500 bg-green-500/10',
-  'sk-ed25519': 'text-green-500 bg-green-500/10',
-  'sk-ecdsa': 'text-green-500 bg-green-500/10',
-  'unknown': 'text-green-500 bg-green-500/10',
-};
+// Since all algorithms use the same styling, use a single constant
+const KEY_ICON_CLASS = 'text-green-500 bg-green-500/10';
 
 function formatAlgorithm(algorithm: string): string {
   if (algorithm === 'rsa' || algorithm === 'RSA') return 'RSA-4096';
@@ -125,11 +106,8 @@ export function Sidebar() {
                     selectedKey?.privateKeyPath === key.privateKeyPath && 'bg-accent ring-1 ring-primary/20'
                   )}
                 >
-                  <div className={cn(
-                    'p-2 rounded-lg shrink-0',
-                    algorithmColors[key.algorithm] || algorithmColors['unknown']
-                  )}>
-                    {algorithmIcons[key.algorithm] || algorithmIcons['unknown']}
+                  <div className={cn('p-2 rounded-lg shrink-0', KEY_ICON_CLASS)}>
+                    <KeyRound className="h-4 w-4" />
                   </div>
 
                   <div className="flex-1 min-w-0 overflow-hidden">

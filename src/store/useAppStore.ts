@@ -158,8 +158,4 @@ export const useAppStore = create<AppStore>((set, get) => ({
     }
   },
 
-  // Refresh keys
-  refreshKeys: async () => {
-    await get().loadKeys();
-  },
 }));
