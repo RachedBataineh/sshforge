@@ -1,7 +1,17 @@
 import { useState, useEffect } from 'react';
-import { Server, Terminal, Trash2, RefreshCw, Plus, ExternalLink } from 'lucide-react';
+import { Server, Terminal, Trash2, RefreshCw, Plus, ExternalLink, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { useAppStore } from '@/store/useAppStore';
 import { AddServerDialog } from './AddServerDialog';
 import type { SSHServerConnection } from '@/types';
@@ -24,7 +34,12 @@ export function ServerConnectionsSection({ identityFilePath, keyName }: ServerCo
 
   const [forgettingServer, setForgettingServer] = useState<string | null>(null);
   const [connectingServer, setConnectingServer] = useState<string | null>(null);
-  const [removingServer, setRemovingServer] = useState<string | null>(null);
+
+  // Delete dialog state
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [serverToDelete, setServerToDelete] = useState<SSHServerConnection | null>(null);
+  const [alsoForget, setAlsoForget] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Load server connections on mount
   useEffect(() => {
@@ -54,12 +69,27 @@ export function ServerConnectionsSection({ identityFilePath, keyName }: ServerCo
     }
   };
 
-  const handleRemove = async (connection: SSHServerConnection) => {
-    setRemovingServer(connection.alias);
+  const handleDeleteClick = (connection: SSHServerConnection) => {
+    setServerToDelete(connection);
+    setAlsoForget(false);
+    setShowDeleteDialog(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!serverToDelete) return;
+
+    setIsDeleting(true);
     try {
-      await removeServerConnection(connection.alias);
+      // If also forget is checked, remove from known_hosts first
+      if (alsoForget) {
+        await forgetServer(serverToDelete.hostName);
+      }
+      // Then remove from SSH config
+      await removeServerConnection(serverToDelete.alias);
+      setShowDeleteDialog(false);
+      setServerToDelete(null);
     } finally {
-      setRemovingServer(null);
+      setIsDeleting(false);
     }
   };
 
@@ -147,15 +177,10 @@ export function ServerConnectionsSection({ identityFilePath, keyName }: ServerCo
                       variant="ghost"
                       size="sm"
                       className="hover:bg-destructive/10 hover:text-destructive"
-                      onClick={() => handleRemove(connection)}
-                      disabled={removingServer === connection.alias}
+                      onClick={() => handleDeleteClick(connection)}
                       title="Remove from SSH config"
                     >
-                      {removingServer === connection.alias ? (
-                        <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-                      ) : (
-                        <Trash2 className="h-3.5 w-3.5" />
-                      )}
+                      <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>
                 </div>
@@ -186,6 +211,85 @@ export function ServerConnectionsSection({ identityFilePath, keyName }: ServerCo
         identityFilePath={identityFilePath}
         keyName={keyName}
       />
+
+      {/* Delete Server Confirmation Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent className="sm:max-w-md w-[calc(100%-2rem)] max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader className="flex-shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-destructive/10 rounded-lg flex-shrink-0">
+                <Trash2 className="h-6 w-6 text-destructive" />
+              </div>
+              <div className="min-w-0 overflow-hidden">
+                <DialogTitle>Remove Server Connection?</DialogTitle>
+                <DialogDescription>
+                  This will remove the server from your SSH config.
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="space-y-4 mt-4 overflow-y-auto flex-1 min-h-0 p-1 -m-1">
+            {serverToDelete && (
+              <div className="p-3 bg-muted/50 rounded-lg">
+                <p className="text-sm font-medium">{serverToDelete.alias}</p>
+                <p className="text-xs text-muted-foreground">
+                  {serverToDelete.user}@{serverToDelete.hostName}
+                </p>
+              </div>
+            )}
+
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                This will remove <strong>{serverToDelete?.alias}</strong> from your SSH config file.
+                You won't be able to use <code className="bg-muted/50 px-1 rounded">ssh {serverToDelete?.alias}</code> anymore.
+              </AlertDescription>
+            </Alert>
+
+            {/* Forget servers checkbox */}
+            <div className="flex items-start space-x-3 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+              <Checkbox
+                id="alsoForget"
+                checked={alsoForget}
+                onCheckedChange={(checked) => setAlsoForget(checked as boolean)}
+              />
+              <div className="space-y-1 leading-none">
+                <Label
+                  htmlFor="alsoForget"
+                  className="text-sm font-medium cursor-pointer flex items-center gap-1.5"
+                >
+                  <ExternalLink className="h-3.5 w-3.5 text-amber-600" />
+                  Also forget from known_hosts
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Removes {serverToDelete?.hostName} from known_hosts.
+                  Select this if you plan to reconnect to this server later to avoid "REMOTE HOST IDENTIFICATION HAS CHANGED" errors.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-2 pt-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteDialog(false)}
+              disabled={isDeleting}
+              className="flex-1 h-9"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmDelete}
+              disabled={isDeleting}
+              className="flex-1 h-9"
+            >
+              {isDeleting ? 'Removing...' : alsoForget ? 'Forget & Remove' : 'Remove'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
