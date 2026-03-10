@@ -4,6 +4,7 @@ import { KeyDetailView } from '@/components/KeyDetailView';
 import { KeyGeneratorForm } from '@/components/KeyGeneratorForm';
 import { DeleteKeyDialog, RenameKeyDialog, OverwriteKeyDialog } from '@/components/KeyDialogs';
 import { SuccessDialog } from '@/components/SuccessDialog';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { useAppStore } from '@/store/useAppStore';
 import { KeyRound } from 'lucide-react';
 
@@ -44,8 +45,12 @@ function App() {
   return (
     <TooltipProvider>
       <div className="flex flex-col h-screen bg-background">
-        {/* macOS Title Bar - Transparent drag region for traffic light buttons */}
-        <div className="h-12 flex-shrink-0 bg-background border-b" style={{ WebkitAppRegion: 'drag' } as React.CSSProperties} />
+        {/* macOS Title Bar - Drag region with theme toggle */}
+        <div className="h-12 flex-shrink-0 bg-background border-b flex items-center justify-end px-3" style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}>
+          <div style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
+            <ThemeToggle />
+          </div>
+        </div>
 
         {/* Main Content Area */}
         <div className="flex flex-1 overflow-hidden">
