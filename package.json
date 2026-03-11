@@ -67,6 +67,7 @@
       "dist/**/*",
       "dist-electron/**/*"
     ],
+    "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
     "mac": {
       "target": "dmg",
       "category": "public.app-category.developer-tools",
@@ -77,14 +78,22 @@
     },
     "win": {
       "target": [
-        "nsis",
-        "portable"
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
       ]
     },
     "linux": {
       "target": [
-        "AppImage",
-        "deb"
+        {
+          "target": "AppImage",
+          "arch": ["x64"]
+        },
+        {
+          "target": "deb",
+          "arch": ["x64"]
+        }
       ]
     }
   }
