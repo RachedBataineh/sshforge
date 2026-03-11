@@ -49,7 +49,7 @@ export function Sidebar() {
       {/* Header */}
       <div className="p-3 space-y-3">
         <div className="flex items-center gap-2">
-          <img src={logo} alt="SSHForge" className="h-9 w-9 rounded-lg" />
+          <img src={logo} alt="SSHForge" className="h-9 w-9 rounded-sm" />
           <div>
             <h1 className="font-bold text-lg">SSHForge</h1>
             <p className="text-xs text-muted-foreground">Key Manager</p>
