@@ -355,15 +355,18 @@ function openTerminalWithSSH(options: { host: string; user?: string; identityFil
         // Each opens a NEW visible window and keeps it open for user input.
 
         let resolved = false;
+        console.log('[SSH Config] Windows SSH command:', sshCmd);
 
         const tryCMD = () => {
           // CMD opens a new window with 'start' and keeps it open with '/k'
+          console.log('[SSH Config] Falling back to CMD...');
           const cmdProcess = spawn(
             'cmd.exe',
             ['/c', 'start', 'cmd.exe', '/k', sshCmd],
             { detached: true, stdio: 'ignore', shell: false, windowsHide: false }
           );
           cmdProcess.on('error', (err) => {
+            console.error('[SSH Config] CMD failed:', err.message);
             if (!resolved) {
               resolved = true;
               resolve({ success: false, error: `Could not open terminal: ${err.message}` });
@@ -372,65 +375,119 @@ function openTerminalWithSSH(options: { host: string; user?: string; identityFil
           cmdProcess.unref();
           if (!resolved) {
             resolved = true;
+            console.log('[SSH Config] Terminal opened with CMD');
             resolve({ success: true });
           }
         };
 
         const tryPowerShell = () => {
           // PowerShell in a new window using start command
+          console.log('[SSH Config] Falling back to PowerShell...');
           const psProcess = spawn(
             'cmd.exe',
             ['/c', 'start', 'powershell.exe', '-NoExit', '-Command', sshCmd],
             { detached: true, stdio: 'ignore', shell: false, windowsHide: false }
           );
-          psProcess.on('error', tryCMD);
+          psProcess.on('error', (err) => {
+            console.log('[SSH Config] PowerShell not available:', err.message);
+            tryCMD();
+          });
           psProcess.unref();
           if (!resolved) {
             resolved = true;
+            console.log('[SSH Config] Terminal opened with PowerShell');
             resolve({ success: true });
           }
         };
 
         // Try Windows Terminal first
+        console.log('[SSH Config] Trying Windows Terminal...');
         const wtProcess = spawn(
           'wt.exe',
           ['-p', 'PowerShell', 'powershell.exe', '-NoExit', '-Command', sshCmd],
           { detached: true, stdio: 'ignore', shell: false, windowsHide: false }
         );
-        wtProcess.on('error', tryPowerShell);
+        wtProcess.on('error', (err) => {
+          console.log('[SSH Config] Windows Terminal not available:', err.message);
+          tryPowerShell();
+        });
         wtProcess.unref();
         if (!resolved) {
           resolved = true;
+          console.log('[SSH Config] Terminal opened with Windows Terminal');
           resolve({ success: true });
         }
 
       } else {
         // ── Linux ─────────────────────────────────────────────────────────────
+        // Properly escape the SSH command for shell execution
+        const escapedCmd = sshCmd.replace(/'/g, "'\\''");
+        const bashCommand = `${sshCmd}; exec bash`; // Keep terminal open after SSH exits
+
+        // Terminal emulators with their specific argument formats
         const linuxTerminals = [
-          { cmd: 'x-terminal-emulator', args: ['-e', `bash -c "${sshCmd}; exec bash"`] },
-          { cmd: 'gnome-terminal',      args: ['--', 'bash', '-c', `${sshCmd}; exec bash`] },
-          { cmd: 'xfce4-terminal',      args: ['--hold', '-e', sshCmd] },
-          { cmd: 'konsole',             args: ['--hold', '-e', sshCmd] },
-          { cmd: 'xterm',               args: ['-hold', '-e', sshCmd] },
+          { cmd: 'x-terminal-emulator', args: ['-e', 'bash', '-c', bashCommand] },
+          { cmd: 'gnome-terminal',      args: ['--', 'bash', '-c', bashCommand] },
+          { cmd: 'xfce4-terminal',      args: ['-e', 'bash', '-c', bashCommand] },
+          { cmd: 'konsole',             args: ['-e', 'bash', '-c', bashCommand] },
+          { cmd: 'xterm',               args: ['-e', 'bash', '-c', bashCommand] },
         ];
 
         let resolved = false;
-        const tryNext = (index: number) => {
+        console.log('[SSH Config] Linux SSH command:', sshCmd);
+
+        const tryNext = (index: number, lastError?: string) => {
           if (index >= linuxTerminals.length) {
             if (!resolved) {
               resolved = true;
-              resolve({ success: false, error: 'No supported terminal emulator found. Install xterm or gnome-terminal.' });
+              console.error('[SSH Config] No terminal emulator found');
+              resolve({
+                success: false,
+                error: `No supported terminal emulator found. Tried: ${linuxTerminals.map(t => t.cmd).join(', ')}. Install gnome-terminal or xterm.`
+              });
             }
             return;
           }
+
           const { cmd, args } = linuxTerminals[index];
-          const proc = spawn(cmd, args, { detached: true, stdio: 'ignore' });
-          proc.on('error', () => tryNext(index + 1));
-          proc.unref();
-          if (!resolved) {
-            resolved = true;
-            resolve({ success: true });
-          }
+          console.log(`[SSH Config] Trying ${cmd}...`);
+
+          const proc = spawn(cmd, args, {
+            detached: true,
+            stdio: ['ignore', 'pipe', 'pipe']
+          });
+
+          let errorOutput = '';
+
+          proc.stderr?.on('data', (data) => {
+            errorOutput += data.toString();
+          });
+
+          proc.on('error', (err) => {
+            console.log(`[SSH Config] ${cmd} not available:`, err.message);
+            tryNext(index + 1, err.message);
+          });
+
+          proc.on('close', (code) => {
+            if (code === 0 || code === null) {
+              // code === null means process detached successfully
+              if (!resolved) {
+                resolved = true;
+                console.log(`[SSH Config] Terminal opened with ${cmd}`);
+                resolve({ success: true });
+              }
+            } else {
+              console.log(`[SSH Config] ${cmd} exited with code ${code}:`, errorOutput);
+              tryNext(index + 1, errorOutput || `Exit code ${code}`);
+            }
+          });
+
+          // Give the process a moment to start before detaching
+          setTimeout(() => {
+            if (!resolved) {
+              proc.unref();
+            }
+          }, 100);
         };
 
         tryNext(0);
