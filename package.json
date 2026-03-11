@@ -39,6 +39,7 @@
     "zustand": "^4.5.0"
   },
   "devDependencies": {
+    "@electron/notarize": "^2.5.0",
     "@types/node": "^20.10.0",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
@@ -66,7 +67,10 @@
     "mac": {
       "target": "dmg",
       "category": "public.app-category.developer-tools",
-      "hardenedRuntime": true
+      "hardenedRuntime": true,
+      "notarize": {
+        "teamId": "59CYJKP94R"
+      }
     },
     "win": {
       "target": [
