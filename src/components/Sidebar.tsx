@@ -1,9 +1,10 @@
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Plus,
   RefreshCw,
   KeyRound,
   FolderOpen,
+  Settings,
 } from 'lucide-react';
 import logo from '@/assets/logo.png';
 import { Button } from '@/components/ui/button';
@@ -11,6 +12,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { useAppStore } from '@/store/useAppStore';
 import { cn } from '@/lib/utils';
+import { SettingsDialog } from './SettingsDialog';
 
 // Since all algorithms use the same styling, use a single constant
 const KEY_ICON_CLASS = 'text-green-500 bg-green-500/10';
@@ -30,6 +32,8 @@ export function Sidebar() {
     selectKey,
     setCurrentView,
   } = useAppStore();
+
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
     loadKeys();
@@ -124,19 +128,33 @@ export function Sidebar() {
 
       {/* Footer */}
       <div className="p-3 border-t">
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-full justify-start gap-2 text-muted-foreground"
-          onClick={async () => {
-            const defaultPath = await window.electronAPI.getDefaultPath();
-            window.electronAPI.openInFileManager(defaultPath);
-          }}
-        >
-          <FolderOpen className="h-4 w-4" />
-          Open SSH Folder
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1 justify-start gap-2 text-muted-foreground"
+            onClick={async () => {
+              const defaultPath = await window.electronAPI.getDefaultPath();
+              window.electronAPI.openInFileManager(defaultPath);
+            }}
+          >
+            <FolderOpen className="h-4 w-4" />
+            Open SSH Folder
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-muted-foreground"
+            onClick={() => setSettingsOpen(true)}
+            title="Settings"
+          >
+            <Settings className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
+
+      {/* Settings Dialog */}
+      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
     </div>
   );
 }
