@@ -81,6 +81,8 @@
       ],
       "category": "public.app-category.developer-tools",
       "hardenedRuntime": true,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
       "notarize": {
         "teamId": "59CYJKP94R"
       }

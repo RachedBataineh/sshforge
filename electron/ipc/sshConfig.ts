@@ -314,13 +314,40 @@ function openTerminalWithSSH(options: { host: string; user?: string; identityFil
 
       if (platform === 'darwin') {
         // ── macOS ─────────────────────────────────────────────────────────────
+        // Use multiple -e flags for osascript (required for proper parsing)
         const escaped = sshCmd.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-        const script = `tell application "Terminal"
-activate
-do script "${escaped}"
-end tell`;
-        spawn('osascript', ['-e', script], { detached: true, stdio: 'ignore' }).unref();
-        resolve({ success: true });
+        console.log('[SSH Config] macOS SSH command:', sshCmd);
+
+        const osaProcess = spawn('osascript', [
+          '-e', 'tell application "Terminal" to activate',
+          '-e', `tell application "Terminal" to do script "${escaped}"`
+        ], {
+          detached: true,
+          stdio: ['ignore', 'pipe', 'pipe']
+        });
+
+        let errorOutput = '';
+        osaProcess.stderr?.on('data', (data) => {
+          errorOutput += data.toString();
+          console.error('[SSH Config] osascript stderr:', data.toString());
+        });
+
+        osaProcess.on('error', (err) => {
+          console.error('[SSH Config] Failed to spawn osascript:', err);
+          resolve({ success: false, error: `Failed to open terminal: ${err.message}` });
+        });
+
+        osaProcess.on('close', (code) => {
+          if (code === 0) {
+            console.log('[SSH Config] Terminal opened successfully');
+            resolve({ success: true });
+          } else {
+            console.error('[SSH Config] osascript exited with code:', code, errorOutput);
+            resolve({ success: false, error: `Failed to open terminal: ${errorOutput || `Exit code ${code}`}` });
+          }
+        });
+
+        osaProcess.unref();
 
       } else if (platform === 'win32') {
         // ── Windows ───────────────────────────────────────────────────────────
