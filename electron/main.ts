@@ -70,7 +70,12 @@ function setupAutoUpdater(): void {
 
   // Handle errors
   autoUpdater.on('error', (error) => {
-    console.error('Auto-updater error:', error);
+    console.error('[AutoUpdater] Error:', error);
+    if (mainWindow) {
+      mainWindow.webContents.send('update-error', {
+        message: error.message || 'Unknown update error',
+      });
+    }
   });
 }
 
@@ -260,8 +265,26 @@ function registerHandlers(): void {
 
   ipcMain.handle('updater:install-update', () => {
     if (isDev) return;
-    // This will quit the app and install the update
-    autoUpdater.quitAndInstall();
+
+    console.log('[AutoUpdater] Installing update...');
+
+    // On Windows, we need special handling for NSIS installer
+    if (process.platform === 'win32') {
+      // Close all windows first to ensure clean exit
+      BrowserWindow.getAllWindows().forEach(win => {
+        win.close();
+      });
+
+      // Give windows time to close, then quit and install
+      // isSilent=false shows the installer, isForceRunAfter=true restarts app after
+      setTimeout(() => {
+        console.log('[AutoUpdater] Calling quitAndInstall for Windows');
+        autoUpdater.quitAndInstall(false, true);
+      }, 500);
+    } else {
+      // macOS works fine with default behavior
+      autoUpdater.quitAndInstall();
+    }
   });
 
   ipcMain.handle('updater:get-version', () => {

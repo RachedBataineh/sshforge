@@ -54,6 +54,7 @@ declare global {
       onUpdateAvailable: (callback: (info: { version: string; releaseDate?: string; releaseNotes?: string }) => void) => void;
       onUpdateProgress: (callback: (progress: { percent: number; transferred: number; total: number }) => void) => void;
       onUpdateDownloaded: (callback: (info: { version: string }) => void) => void;
+      onUpdateError: (callback: (error: { message: string }) => void) => void;
     };
   }
 }

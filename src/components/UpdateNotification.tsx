@@ -53,6 +53,12 @@ export function UpdateNotification() {
       setDownloadProgress(null);
       setUpdateState('downloaded');
     });
+
+    // Listen for update errors
+    window.electronAPI.onUpdateError((error) => {
+      setError(error.message);
+      setUpdateState('error');
+    });
   }, []);
 
   const handleDownload = async () => {
