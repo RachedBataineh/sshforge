@@ -54,7 +54,7 @@
     "vite-plugin-electron-renderer": "^0.14.0"
   },
   "build": {
-    "appId": "com.sshforge.app",
+    "appId": "studio.mesmerized.sshforge",
     "productName": "SSHForge",
     "directories": {
       "output": "release"
@@ -64,11 +64,9 @@
       "dist-electron/**/*"
     ],
     "mac": {
-      "category": "public.app-category.utilities",
-      "target": [
-        "dmg",
-        "zip"
-      ]
+      "target": "dmg",
+      "category": "public.app-category.developer-tools",
+      "hardenedRuntime": true
     },
     "win": {
       "target": [
