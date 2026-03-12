@@ -106,7 +106,7 @@ export function Sidebar() {
                   className={cn(
                     'flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors',
                     'hover:bg-accent',
-                    selectedKey?.privateKeyPath === key.privateKeyPath && 'bg-accent ring-1 ring-primary/20'
+                    selectedKey?.privateKeyPath === key.privateKeyPath && 'bg-accent'
                   )}
                 >
                   <div className={cn('p-2 rounded-lg shrink-0', KEY_ICON_CLASS)}>

@@ -31,7 +31,7 @@ export function ThemeToggle() {
           {currentTheme?.icon}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
+      <DropdownMenuContent align="end" className="space-y-1">
         {themes.map((t) => (
           <DropdownMenuItem
             key={t.value}
