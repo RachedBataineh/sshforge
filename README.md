@@ -1,7 +1,7 @@
 # SSHForge
 
 <p align="center">
-  <img src="build/icon.png" alt="SSHForge Logo" width="128" height="128">
+  <img src="build/icon.ico" alt="SSHForge Logo" width="128" height="128">
 </p>
 
 <p align="center">
@@ -22,7 +22,7 @@
 
 SSHForge is a cross-platform desktop application that simplifies SSH key management. No more terminal commands or remembering complex `ssh-keygen` syntax. With SSHForge, you can:
 
-- **Generate SSH Keys** - Create RSA, ED25519, ECDSA, and DSA keys with a beautiful graphical interface
+- **Generate SSH Keys** - Create Ed25519, RSA-4096, and ECDSA keys with a beautiful graphical interface
 - **Manage Your Keys** - View all your keys in one place, copy public keys, and organize them effortlessly
 - **Connect to Servers** - Save SSH server connections and associate keys with specific hosts
 
@@ -31,10 +31,10 @@ Whether you're a developer, DevOps engineer, or system administrator, SSHForge m
 ## Features
 
 ### Key Generation
-- Multiple algorithm support (RSA-4096, ED25519, ECDSA, DSA)
+- Multiple algorithm support (Ed25519, RSA-4096, ECDSA P-256/P-384/P-521)
 - Customizable key names and comments
 - Optional passphrase protection
-- Secure key generation using OpenSSL
+- Secure key generation using Node.js crypto
 - **100% OpenSSH compatible** - keys work everywhere OpenSSH is supported
 
 ### Key Management
@@ -134,8 +134,8 @@ Built applications are output to the `release/` directory.
 - **[Zustand](https://zustand-demo.pmnd.rs/)** v4 - A small, fast and scalable state-management solution
 
 ### Security & Cryptography
-- **OpenSSL** (via Node.js) - Secure key generation
-- **bcrypt** - Passphrase hashing
+- **Node.js crypto** - Secure key generation
+- **bcrypt-pbkdf** - OpenSSH-compatible passphrase encryption
 
 ### Data Persistence
 - **[electron-store](https://github.com/sindresorhus/electron-store)** - Simple data persistence for Electron apps
@@ -197,7 +197,6 @@ SSHForge takes security seriously:
 - **DevTools disabled** in production builds
 - **Context isolation** enabled in Electron
 - **Node integration** disabled in renderer
-- **Sandboxed** renderer process
 - Keys are stored in the standard `~/.ssh` directory
 - Passphrases are never stored; keys are encrypted using industry-standard algorithms
 
