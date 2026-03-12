@@ -155,16 +155,37 @@ sshforge/
 │   ├── components/             # UI components
 │   │   ├── ui/                 # Reusable UI primitives
 │   │   ├── Sidebar.tsx         # Navigation sidebar
-│   │   ├── CreateKeyForm.tsx   # Key creation form
-│   │   └── ...                 # Other components
-│   ├── store/                  # Zustand store
-│   │   └── useAppStore.ts      # Global application state
+│   │   ├── KeyGeneratorForm.tsx # Key creation form
+│   │   ├── KeyDetailView.tsx   # Key details display
+│   │   ├── KeyDialogs.tsx      # Key-related dialogs
+│   │   ├── KeyPreview.tsx      # Key preview component
+│   │   ├── AddServerDialog.tsx # Server connection dialog
+│   │   ├── ServerConnectionsSection.tsx # Server list section
+│   │   ├── AlgorithmSelector.tsx # Algorithm selection
+│   │   ├── PassphraseInput.tsx # Passphrase input field
+│   │   ├── ThemeToggle.tsx     # Dark/light mode toggle
+│   │   ├── SettingsDialog.tsx  # Settings modal
+│   │   ├── SuccessDialog.tsx   # Success notification
+│   │   └── UpdateNotification.tsx # Update alert
+│   ├── store/                  # Zustand stores
+│   │   ├── useAppStore.ts      # Global application state
+│   │   ├── useKeyStore.ts      # SSH key state
+│   │   └── useThemeStore.ts    # Theme state
 │   ├── types/                  # TypeScript definitions
+│   │   ├── index.ts            # Shared types
+│   │   └── electron.d.ts       # Electron API types
 │   ├── lib/                    # Utility functions
+│   │   ├── utils.ts            # Helper functions
+│   │   └── constants.ts        # App constants
 │   └── assets/                 # Static assets (images, etc.)
 ├── build/                      # Build resources
-│   ├── icon.png                # Application icon
-│   └── entitlements.mac.plist  # macOS entitlements
+│   ├── icon.png                # Application icon (PNG)
+│   ├── icon.svg                # Application icon (SVG)
+│   ├── icon.icns               # macOS icon bundle
+│   ├── icon.ico                # Windows icon
+│   ├── icons/                  # Platform-specific icons
+│   ├── entitlements.mac.plist  # macOS entitlements
+│   └── notarize.cjs            # macOS notarization script
 ├── public/                     # Public static files
 └── release/                    # Built applications (git-ignored)
 ```
