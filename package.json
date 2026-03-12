@@ -1,6 +1,6 @@
 {
   "name": "sshforge",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "A beautiful SSH key generation application",
   "type": "module",
   "main": "dist-electron/main.js",
