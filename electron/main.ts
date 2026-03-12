@@ -247,7 +247,13 @@ function registerHandlers(): void {
     if (isDev) return { available: false, message: 'Updates not available in development' };
     try {
       const result = await autoUpdater.checkForUpdates();
-      return { available: true, version: result?.updateInfo.version };
+      const currentVersion = app.getVersion();
+      const latestVersion = result?.updateInfo.version;
+
+      // Compare versions to determine if update is actually available
+      const isUpdateAvailable = latestVersion && latestVersion !== currentVersion;
+
+      return { available: isUpdateAvailable, version: latestVersion };
     } catch (error) {
       return { available: false, error: String(error) };
     }
